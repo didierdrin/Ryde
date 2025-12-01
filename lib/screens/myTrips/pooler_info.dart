@@ -1,6 +1,8 @@
 import 'dart:async';
 
-import 'package:animation_wrappers/animation_wrappers.dart';
+// import 'package:animation_wrappers/animation_wrappers.dart';
+import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
+import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ryde_rw/components/widgets/color_button.dart';

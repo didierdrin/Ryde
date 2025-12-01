@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:animation_wrappers/animations/faded_scale_animation.dart';
+import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
