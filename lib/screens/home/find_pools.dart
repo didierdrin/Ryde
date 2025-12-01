@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:animation_wrappers/animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -491,9 +489,7 @@ class FindPoolState extends ConsumerState<FindPool> {
                     ),
                   ),
                   SizedBox(height: 40),
-                  FadedScaleAnimation(
-                    scaleDuration: const Duration(milliseconds: 600),
-                    child: BottomBar(
+                  BottomBar(
                       isValid: isValid(),
                       onTap: () {
                         _submitForm();
@@ -501,7 +497,7 @@ class FindPoolState extends ConsumerState<FindPool> {
                       text: "Find Pool",
                       textColor: kWhiteColor,
                     ),
-                  ),
+                  
                   SizedBox(height: 8),
                 ],
               ),
@@ -512,3 +508,4 @@ class FindPoolState extends ConsumerState<FindPool> {
     );
   }
 }
+

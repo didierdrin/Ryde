@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
@@ -232,11 +231,7 @@ class AddAddressState extends ConsumerState<AddAddress> {
                 ],
               ),
             ),
-            FadedSlideAnimation(
-              beginOffset: Offset(0, 0.4),
-              endOffset: Offset(0, 0),
-              slideCurve: Curves.linearToEaseOut,
-              child: Stack(
+          Stack(
                 children: [
                   Container(
                     margin: EdgeInsets.only(bottom: 75),
@@ -321,13 +316,9 @@ class AddAddressState extends ConsumerState<AddAddress> {
                     ),
                   ),
                 ],
-              ),
+              
             ),
-            FadedSlideAnimation(
-              beginOffset: Offset(0, 0.4),
-              endOffset: Offset(0, 0),
-              slideCurve: Curves.linearToEaseOut,
-              child: Container(
+            Container(
                 width: MediaQuery.of(context).size.width,
                 height: 285,
                 decoration: BoxDecoration(
@@ -460,10 +451,11 @@ class AddAddressState extends ConsumerState<AddAddress> {
                   ),
                 ),
               ),
-            ),
+            
           ],
         ),
       ),
     );
   }
 }
+

@@ -1,6 +1,3 @@
-// import 'package:animation_wrappers/animation_wrappers.dart';
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ryde_rw/components/widgets/color_button.dart';
@@ -78,20 +75,14 @@ class ChangeLanguageState extends ConsumerState<ChangeLanguage> {
                 Spacer(),
                 Expanded(
                   flex: 6,
-                  child: FadedScaleAnimation(
-                    scaleDuration: const Duration(milliseconds: 600),
-                    child: Image.asset("assets/head_support.png"),
-                  ),
+                  child: Image.asset("assets/head_support.png"),
+                  
                 ),
               ],
             ),
           ),
           Expanded(
-            child: FadedSlideAnimation(
-              beginOffset: Offset(0, 0.4),
-              endOffset: Offset(0, 0),
-              slideCurve: Curves.linearToEaseOut,
-              child: Container(
+            child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                 width: MediaQuery.of(context).size.width,
                 decoration: BoxDecoration(
@@ -127,7 +118,7 @@ class ChangeLanguageState extends ConsumerState<ChangeLanguage> {
                     );
                   },
                 ),
-              ),
+              
             ),
           ),
           Container(
@@ -143,17 +134,14 @@ class ChangeLanguageState extends ConsumerState<ChangeLanguage> {
                 //   Navigator.pop(context);
                 // }
               },
-              child: FadedScaleAnimation(
-                scaleDuration: const Duration(milliseconds: 600),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: SizedBox(height: 55, child: ColorButton("Submit")),
-                ),
+              child: SizedBox(height: 55, child: ColorButton("Submit")),
+                
               ),
             ),
-          ),
+          
         ],
       ),
     );
   }
 }
+

@@ -103,3 +103,4 @@ class LocalStorage {
     return data ?? false;
   }
 }
+

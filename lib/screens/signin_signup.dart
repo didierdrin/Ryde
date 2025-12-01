@@ -1,6 +1,3 @@
-// import 'package:animation_wrappers/animation_wrappers.dart';
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -157,11 +154,7 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
           ),
           centerTitle: true,
         ),
-        body: FadedSlideAnimation(
-          beginOffset: const Offset(0, 0.3),
-          endOffset: const Offset(0, 0),
-          slideCurve: Curves.linearToEaseOut,
-          child: GestureDetector(
+        body: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
@@ -278,8 +271,8 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
               ),
             ),
           ),
-        ),
       ),
     );
   }
 }
+

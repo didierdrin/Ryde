@@ -52,3 +52,4 @@ class UserVehicle {
   final Vehicle userVehicle;
   UserVehicle({required this.user, required this.userVehicle});
 }
+

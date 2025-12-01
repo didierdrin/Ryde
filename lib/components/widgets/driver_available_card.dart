@@ -158,3 +158,4 @@ class DriverAvailableCard extends ConsumerWidget {
     );
   }
 }
+

@@ -1,5 +1,3 @@
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/theme/style_text.dart';
@@ -30,16 +28,14 @@ class BuildListTile extends StatelessWidget {
           vertical: 4.0,
           horizontal: 20.0,
         ),
-        leading: FadedScaleAnimation(
-          child: Container(
-            height: 32,
-            width: 32,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(8.0)),
-            child: Icon(
-              icon,
-              color: isSelected ? const Color(0xFFB90000) : kMainColor,
-              size: 20.0,
-            ),
+        leading: Container(
+          height: 32,
+          width: 32,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8.0)),
+          child: Icon(
+            icon,
+            color: isSelected ? const Color(0xFFB90000) : kMainColor,
+            size: 20.0,
           ),
         ),
         title: Text(
@@ -55,3 +51,4 @@ class BuildListTile extends StatelessWidget {
     );
   }
 }
+

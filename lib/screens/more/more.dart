@@ -1,8 +1,5 @@
 import 'dart:io';
 
-// import 'package:animation_wrappers/animation_wrappers.dart';
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -175,11 +172,7 @@ class More extends ConsumerWidget {
                           child: Stack(
                             alignment: Alignment.centerLeft,
                             children: [
-                              FadedScaleAnimation(
-                                scaleDuration: const Duration(
-                                  milliseconds: 600,
-                                ),
-                                child: Container(
+                              Container(
                                   padding: EdgeInsets.all(10),
                                   width: 90,
                                   child: ClipRRect(
@@ -194,7 +187,7 @@ class More extends ConsumerWidget {
                                     ),
                                   ),
                                 ),
-                              ),
+                              
                             ],
                           ),
                         ),
@@ -205,11 +198,7 @@ class More extends ConsumerWidget {
               ),
             ),
             // Wallet Section
-            FadedSlideAnimation(
-              beginOffset: Offset(0, 0.4),
-              endOffset: Offset(0, 0),
-              slideCurve: Curves.linearToEaseOut,
-              child: Container(
+          Container(
                 width: MediaQuery.of(context).size.width,
                 decoration: BoxDecoration(
                   color: primaryColor,
@@ -276,11 +265,7 @@ class More extends ConsumerWidget {
                     // ),
                     SizedBox(height: 25),
                     // Settings Options List
-                    FadedSlideAnimation(
-                      beginOffset: Offset(0, 0.4),
-                      endOffset: Offset(0, 0),
-                      slideCurve: Curves.linearToEaseOut,
-                      child: Container(
+                 Container(
                         width: MediaQuery.of(context).size.width,
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -339,17 +324,12 @@ class More extends ConsumerWidget {
                           },
                         ),
                       ),
-                    ),
+                    
                   ],
                 ),
               ),
-            ),
-
-            FadedSlideAnimation(
-              beginOffset: Offset(0, 0.4),
-              endOffset: Offset(0, 0),
-              slideCurve: Curves.linearToEaseOut,
-              child: Container(
+            
+Container(
                 width: MediaQuery.of(context).size.width,
                 decoration: BoxDecoration(color: Colors.white),
                 child: BuildListTile(
@@ -362,13 +342,9 @@ class More extends ConsumerWidget {
                   },
                 ),
               ),
-            ),
+            
 
-            FadedSlideAnimation(
-              beginOffset: Offset(0, 0.4),
-              endOffset: Offset(0, 0),
-              slideCurve: Curves.linearToEaseOut,
-              child: Container(
+         Container(
                 width: MediaQuery.of(context).size.width,
                 decoration: BoxDecoration(color: Colors.white),
                 child: BuildListTile(
@@ -381,13 +357,9 @@ class More extends ConsumerWidget {
                   },
                 ),
               ),
-            ),
+            
 
-            FadedSlideAnimation(
-              beginOffset: Offset(0, 0.4),
-              endOffset: Offset(0, 0),
-              slideCurve: Curves.linearToEaseOut,
-              child: Container(
+            Container(
                 width: MediaQuery.of(context).size.width,
                 decoration: BoxDecoration(color: Colors.white),
                 child: BuildListTile(
@@ -400,7 +372,7 @@ class More extends ConsumerWidget {
                   },
                 ),
               ),
-            ),
+            
           ],
         ),
       ),
@@ -574,3 +546,4 @@ class More extends ConsumerWidget {
     );
   }
 }
+

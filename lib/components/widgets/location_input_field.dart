@@ -98,3 +98,4 @@ class _LocationInputFieldState extends State<LocationInputField> {
     );
   }
 }
+

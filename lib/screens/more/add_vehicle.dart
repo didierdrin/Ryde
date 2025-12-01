@@ -1,6 +1,3 @@
-// import 'package:animation_wrappers/animation_wrappers.dart';
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:ryde_rw/components/widgets/color_button.dart';
 import 'package:ryde_rw/components/widgets/text_field.dart';
@@ -152,9 +149,7 @@ class AddVehicleState extends State<AddVehicle> {
                             currentIndex = index;
                           });
                         },
-                        child: FadedScaleAnimation(
-                          scaleDuration: const Duration(milliseconds: 600),
-                          child: Container(
+                        child: Container(
                             margin: EdgeInsets.only(left: 10),
                             width: 35,
                             decoration: BoxDecoration(
@@ -172,7 +167,7 @@ class AddVehicleState extends State<AddVehicle> {
                               ),
                             ),
                           ),
-                        ),
+                        
                       );
                     },
                   ),
@@ -210,10 +205,8 @@ class AddVehicleState extends State<AddVehicle> {
                 },
                 child: SizedBox(
                   height: 55,
-                  child: FadedScaleAnimation(
-                    scaleDuration: const Duration(milliseconds: 600),
-                    child: ColorButton("Continue"),
-                  ),
+                  child: ColorButton("Continue"),
+                  
                 ),
               ),
             ),
@@ -223,3 +216,4 @@ class AddVehicleState extends State<AddVehicle> {
     );
   }
 }
+

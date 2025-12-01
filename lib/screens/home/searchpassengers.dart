@@ -1,5 +1,3 @@
-import 'package:animation_wrappers/animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -106,9 +104,7 @@ class SearchPassengersListPage extends ConsumerWidget {
               topRight: Radius.circular(20),
             ),
           ),
-          child: FadedScaleAnimation(
-            scaleDuration: const Duration(milliseconds: 600),
-            child: offerdatasfilter.isNotEmpty
+          child:  offerdatasfilter.isNotEmpty
                 ? ListView.builder(
                     padding: EdgeInsets.symmetric(vertical: 10),
                     itemCount: offerdatasfilter.length,
@@ -169,7 +165,7 @@ class SearchPassengersListPage extends ConsumerWidget {
                 : Center(child: Text('No Passenger Found NearBy You!')),
           ),
         ),
-      ),
+      
       bottomNavigationBar: type != null
           ? Padding(
               padding: const EdgeInsets.all(16),
@@ -244,3 +240,4 @@ class SearchPassengersListPage extends ConsumerWidget {
     );
   }
 }
+

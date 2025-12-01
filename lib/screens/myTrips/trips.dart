@@ -127,3 +127,4 @@ class _TripsState extends ConsumerState<Trips> with TickerProviderStateMixin {
     );
   }
 }
+

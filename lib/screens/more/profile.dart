@@ -1,7 +1,4 @@
 import 'dart:io';
-// import 'package:animation_wrappers/animation_wrappers.dart';
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -31,7 +28,38 @@ class MyProfile extends ConsumerWidget {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error sharing QR Code')));
-    } finally {}
+    }
+  }
+
+  void _showQRBottomSheet(BuildContext context, String qrFilePath) {
+    showBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'QR Code',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              SizedBox(height: 20),
+              Image.file(
+                File(qrFilePath),
+                width: 200,
+                height: 200,
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () => shareQRCode(context, qrFilePath),
+                child: Text('Share QR Code'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -42,6 +70,7 @@ class MyProfile extends ConsumerWidget {
       Tab(text: "Account Info"),
       Tab(text: "My Vehicle"),
     ];
+    
     return DefaultTabController(
       length: tabs.length,
       child: Scaffold(
@@ -68,14 +97,13 @@ class MyProfile extends ConsumerWidget {
                                 context,
                               ).textTheme.bodyLarge!.copyWith(fontSize: 22),
                             ),
-                            SizedBox(width: 10),
+                            SizedBox(height: 10),
                             Text(
                               "Everything about you",
                               style: Theme.of(
                                 context,
                               ).textTheme.bodyMedium!.copyWith(fontSize: 15),
                             ),
-                            SizedBox(width: 20),
                           ],
                         ),
                         Spacer(),
@@ -85,141 +113,47 @@ class MyProfile extends ConsumerWidget {
                                 'tel:*182*1*1*${removeCountryCode(user.momoPhoneNumber)}#';
                             final qrFilePath =
                                 await QRCodeService.generateQRCodeImage(qrData);
-                            showBottomSheet(context, qrFilePath);
+                            _showQRBottomSheet(context, qrFilePath);
                           },
-                          child: Stack(
-                            alignment: Alignment.centerLeft,
-                            children: [
-                              FadedScaleAnimation(
-                                scaleDuration: const Duration(
-                                  milliseconds: 600,
+                          child: Container(
+                            width: 22,
+                            height: 23,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: kMainColor,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 3),
                                 ),
-                                child: Container(
-                                  padding: EdgeInsets.all(10),
-                                  width: 90,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12.0),
-                                    child: SizedBox(
-                                      height: 70,
-                                      width: 50,
-                                      child: Image.asset(
-                                        'assets/qrcode.png',
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.share_outlined,
+                              color: kWhiteColor,
+                              size: 13,
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: 15),
-                  Container(
-                    width: MediaQuery.of(context).size.width,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(25),
-                        topRight: Radius.circular(25),
-                      ),
-                    ),
-                    alignment: Alignment.topLeft,
-                    child: TabBar(
-                      indicatorWeight: 4.0,
-                      indicatorSize: TabBarIndicatorSize.label,
-                      tabs: tabs,
-                      isScrollable: true,
-                      labelStyle: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge!.copyWith(fontSize: 13.5),
-                      labelColor: primaryColor,
-                      indicatorColor: primaryColor,
-                      unselectedLabelColor: Colors.black,
-                    ),
-                  ),
+                  SizedBox(height: 20),
+                  TabBar(tabs: tabs),
                 ],
               ),
             ),
           ),
         ),
-        body: TabBarView(children: [AccountInfo(), MyVehicleTab()]),
+        body: TabBarView(
+          children: [
+            AccountInfo(),
+            MyVehicleTab(), //MyVehicle(),
+          ],
+        ),
       ),
-    );
-  }
-
-  void showBottomSheet(BuildContext context, String fileqrcode) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            top: 20,
-            left: 16,
-            right: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.6,
-            width: double.infinity,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'MY MOMO QR CODE',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(width: 30),
-                    GestureDetector(
-                      onTap: () async {
-                        await shareQRCode(context, fileqrcode);
-                      },
-                      child: Container(
-                        width: 22,
-                        height: 23,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: kMainColor,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 5,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.share_outlined,
-                          color: kWhiteColor,
-                          size: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Image.file(
-                  File(fileqrcode),
-                  width: MediaQuery.sizeOf(context).width * 0.7,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

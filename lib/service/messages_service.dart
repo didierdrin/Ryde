@@ -142,3 +142,4 @@ Tap to view details''',
   //   });
   // }
 }
+

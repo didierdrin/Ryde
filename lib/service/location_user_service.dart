@@ -26,3 +26,4 @@ class LocationService {
     return address.first.addressLine ?? '';
   }
 }
+

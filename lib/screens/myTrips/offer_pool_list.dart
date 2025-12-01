@@ -1,4 +1,3 @@
-import 'package:animation_wrappers/animations/faded_slide_animation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -46,11 +45,7 @@ class OfferingTab extends ConsumerWidget {
           color: backgroundColor,
           borderRadius: BorderRadius.circular(15),
         ),
-        child: FadedSlideAnimation(
-          beginOffset: Offset(0.4, 0),
-          endOffset: Offset(0, 0),
-          slideCurve: Curves.linearToEaseOut,
-          child: Column(
+        child: Column(
             children: [
               if (offerdatasfilter.isEmpty && !isLoading)
                 Center(
@@ -391,7 +386,8 @@ class OfferingTab extends ConsumerWidget {
             ],
           ),
         ),
-      ),
+      
     );
   }
 }
+

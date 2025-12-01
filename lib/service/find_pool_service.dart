@@ -56,3 +56,4 @@ class FindPoolService {
     await firestore.collection(collection).doc(id).update(data);
   }
 }
+

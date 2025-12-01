@@ -98,3 +98,4 @@ enum TransactionType {
   credit,
   tripPayment,
 }
+

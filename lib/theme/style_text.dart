@@ -136,3 +136,4 @@ class AppStyles {
     textBaseline: TextBaseline.alphabetic,
   );
 }
+

@@ -515,3 +515,4 @@ Time: ${data['trip_time'] ?? 'N/A'}
         });
   }
 }
+

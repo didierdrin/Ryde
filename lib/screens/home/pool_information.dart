@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:animation_wrappers/animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -521,9 +519,7 @@ class PoolerInfoConsumerState extends ConsumerState<PoolerInfo> {
                     ),
                     SizedBox(width: 20),
                     Expanded(
-                      child: FadedScaleAnimation(
-                        scaleDuration: const Duration(milliseconds: 600),
-                        child: BottomBar(
+                      child: BottomBar(
                           // isValid: isValid(),
                           onTap: () async {
                             await _requestRider();
@@ -531,7 +527,7 @@ class PoolerInfoConsumerState extends ConsumerState<PoolerInfo> {
                           text: "Request Ride",
                           textColor: kWhiteColor,
                         ),
-                      ),
+                      
                     ),
                   ],
                 ),
@@ -577,3 +573,4 @@ class PoolerInfoConsumerState extends ConsumerState<PoolerInfo> {
     );
   }
 }
+

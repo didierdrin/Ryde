@@ -1,7 +1,4 @@
 import 'dart:async';
-// import 'package:animation_wrappers/animation_wrappers.dart';
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ryde_rw/components/widgets/color_button.dart';
@@ -76,11 +73,7 @@ class PoolerInfoState extends State<PoolerInfo> {
               },
             ),
           ),
-          FadedSlideAnimation(
-            beginOffset: Offset(0, 0.4),
-            endOffset: Offset(0, 0),
-            slideCurve: Curves.linearToEaseOut,
-            child: Stack(
+          Stack(
               alignment: Alignment.bottomCenter,
               children: [
                 Container(
@@ -268,11 +261,7 @@ class PoolerInfoState extends State<PoolerInfo> {
                         topRight: Radius.circular(20),
                       ),
                     ),
-                    child: FadedSlideAnimation(
-                      beginOffset: Offset(0, 0.4),
-                      endOffset: Offset(0, 0),
-                      slideCurve: Curves.linearToEaseOut,
-                      child: ListView(
+                    child: ListView(
                         physics: NeverScrollableScrollPhysics(),
                         padding: EdgeInsets.zero,
 
@@ -714,7 +703,7 @@ class PoolerInfoState extends State<PoolerInfo> {
                       ),
                     ),
                   ),
-                ),
+                
                 Container(
                   color: Colors.white,
                   padding: const EdgeInsets.symmetric(
@@ -763,9 +752,7 @@ class PoolerInfoState extends State<PoolerInfo> {
                               });
                             }
                           },
-                          child: FadedScaleAnimation(
-                            scaleDuration: const Duration(milliseconds: 600),
-                            child: SizedBox(
+                          child: SizedBox(
                               height: 52,
                               child: isRideRequested && !widget.isFindPool
                                   ? Container(
@@ -811,7 +798,7 @@ class PoolerInfoState extends State<PoolerInfo> {
                                           ? "Request Ride"
                                           : "Offer Ride",
                                     ),
-                            ),
+                            
                           ),
                         ),
                       ),
@@ -820,9 +807,10 @@ class PoolerInfoState extends State<PoolerInfo> {
                 ),
               ],
             ),
-          ),
+          
         ],
       ),
     );
   }
 }
+

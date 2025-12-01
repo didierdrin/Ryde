@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:animation_wrappers/animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -353,10 +351,8 @@ class RideMapScreenState extends ConsumerState<RideMapScreen> {
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: FadedScaleAnimation(
-                        scaleDuration: const Duration(milliseconds: 600),
-                        child: ColorButton("Confirm"), // locale!.confirmationlufiti
-                      ),
+                      child: ColorButton("Confirm"), // locale!.confirmationlufiti
+                      
                     ),
                   ),
                 ),
@@ -603,3 +599,4 @@ class RideMapScreenState extends ConsumerState<RideMapScreen> {
     );
   }
 }
+

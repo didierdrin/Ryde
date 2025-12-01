@@ -1,5 +1,3 @@
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:ryde_rw/components/widgets/custom_write.dart';
@@ -50,19 +48,13 @@ class PrivacyPolicy extends StatelessWidget {
                 Spacer(),
                 Expanded(
                   flex: 5,
-                  child: FadedScaleAnimation(
-                    scaleDuration: const Duration(milliseconds: 600),
-                    child: Image.asset("assets/head_privacypolicy.png"),
-                  ),
+                  child: Image.asset("assets/head_privacypolicy.png"),
+                  
                 ),
               ],
             ),
           ),
-          FadedSlideAnimation(
-            beginOffset: Offset(0, 0.4),
-            endOffset: Offset(0, 0),
-            slideCurve: Curves.linearToEaseOut,
-            child: Container(
+         Container(
               padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
               width: MediaQuery.of(context).size.width,
               height: MediaQuery.of(context).size.height * 0.7,
@@ -191,9 +183,10 @@ class PrivacyPolicy extends StatelessWidget {
                 ],
               ),
             ),
-          ),
+          
         ],
       ),
     );
   }
 }
+

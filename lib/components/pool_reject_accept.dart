@@ -584,3 +584,4 @@ class PoolRejectAccept extends ConsumerWidget {
     );
   }
 }
+

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ryde_rw/components/widgets/color_button.dart';
 import 'package:ryde_rw/components/widgets/entry_field.dart';
@@ -109,11 +107,7 @@ class SendMoneyBottomSheetState extends ConsumerState<SendMoneyBottomSheet> {
       shrinkWrap: true,
       physics: const BouncingScrollPhysics(),
       children: [
-        FadedSlideAnimation(
-          beginOffset: const Offset(0, 0.4),
-          endOffset: const Offset(0, 0),
-          slideCurve: Curves.linearToEaseOut,
-          child: Container(
+        Container(
             width: MediaQuery.of(context).size.width,
             height: 450,
             decoration: const BoxDecoration(
@@ -238,21 +232,20 @@ class SendMoneyBottomSheetState extends ConsumerState<SendMoneyBottomSheet> {
                     const Spacer(),
                     GestureDetector(
                       onTap: _isLoading ? null : _processSendMoney,
-                      child: FadedScaleAnimation(
-                        scaleDuration: const Duration(milliseconds: 600),
-                        child: _isLoading
+                      child:_isLoading
                             ? const Center(child: CircularProgressIndicator())
                             : ColorButton("Send Money"),
-                      ),
+                      
                     ),
                     const SizedBox(height: 15),
                   ],
                 ),
               ),
             ),
-          ),
+          
         ),
       ],
     );
   }
 }
+

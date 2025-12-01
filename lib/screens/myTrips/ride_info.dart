@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:animation_wrappers/animations/faded_slide_animation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -353,11 +352,7 @@ class RideInfoConsumerState extends ConsumerState<RideInfo> {
                       Container(
                         width: MediaQuery.of(context).size.width,
                         decoration: BoxDecoration(color: Colors.white),
-                        child: FadedSlideAnimation(
-                          beginOffset: Offset(0, 0.4),
-                          endOffset: Offset(0, 0),
-                          slideCurve: Curves.linearToEaseOut,
-                          child: ListView(
+                        child: ListView(
                             physics: NeverScrollableScrollPhysics(),
                             padding: EdgeInsets.zero,
                             shrinkWrap: true,
@@ -415,7 +410,7 @@ class RideInfoConsumerState extends ConsumerState<RideInfo> {
                               ),
                             ],
                           ),
-                        ),
+                        
                       ),
                       if (!widget.offer.accepted &&
                           !widget.offer.rejected &&
@@ -1161,3 +1156,4 @@ class RideInfoConsumerState extends ConsumerState<RideInfo> {
     );
   }
 }
+

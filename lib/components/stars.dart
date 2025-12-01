@@ -102,3 +102,4 @@ class StarsState extends State<Stars> {
     );
   }
 }
+

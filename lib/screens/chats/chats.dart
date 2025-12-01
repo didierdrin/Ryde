@@ -1,4 +1,3 @@
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:ryde_rw/screens/chats/chat_page.dart';
@@ -59,63 +58,58 @@ class ChatRooms extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10),
       color: backgroundColor,
-      child: FadedSlideAnimation(
-        beginOffset: Offset(0.4, 0),
-        endOffset: Offset(0, 0),
-        slideCurve: Curves.linearToEaseOut,
-        child: ListView.builder(
-          padding: EdgeInsets.only(bottom: 10),
-          itemCount: 8,
-          itemBuilder: (BuildContext context, int index) {
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ChatPage()),
-                );
-              },
-              child: Container(
-                margin: EdgeInsets.only(top: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.white,
+      child: ListView.builder(
+        padding: EdgeInsets.only(bottom: 10),
+        itemCount: 8,
+        itemBuilder: (BuildContext context, int index) {
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ChatPage()),
+              );
+            },
+            child: Container(
+              margin: EdgeInsets.only(top: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: Colors.white,
+              ),
+              child: ListTile(
+                contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                leading: SizedBox(
+                  height: 50,
+                  child: Image.asset(imgs[index]),
                 ),
-                child: ListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
-                  leading: SizedBox(
-                    height: 50,
-                    child: Image.asset(imgs[index]),
-                  ),
-                  title: Text(
-                    names[index],
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.copyWith(fontSize: 13.5),
-                  ),
-                  subtitle: Row(
-                    children: [
-                      Text(
-                        "No",
-                        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                          fontSize: 12,
-                          color: Color(0xffa8aeb2),
-                        ),
+                title: Text(
+                  names[index],
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge!.copyWith(fontSize: 13.5),
+                ),
+                subtitle: Row(
+                  children: [
+                    Text(
+                      "No",
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                        fontSize: 12,
+                        color: Color(0xffa8aeb2),
                       ),
-                      Spacer(),
-                      Text(
-                        "20 min",
-                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                          fontSize: 10,
-                          color: Color(0xffcccccc),
-                        ),
+                    ),
+                    Spacer(),
+                    Text(
+                      "20 min",
+                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        fontSize: 10,
+                        color: Color(0xffcccccc),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -144,63 +138,58 @@ class Archive extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10),
       color: backgroundColor,
-      child: FadedSlideAnimation(
-        beginOffset: Offset(0.4, 0),
-        endOffset: Offset(0, 0),
-        slideCurve: Curves.linearToEaseOut,
-        child: ListView.builder(
-          padding: EdgeInsets.only(bottom: 10),
-          itemCount: 4,
-          itemBuilder: (BuildContext context, int index) {
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ChatPage()),
-                );
-              },
-              child: Container(
-                margin: EdgeInsets.only(top: 10),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.white,
+      child: ListView.builder(
+        padding: EdgeInsets.only(bottom: 10),
+        itemCount: 4,
+        itemBuilder: (BuildContext context, int index) {
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ChatPage()),
+              );
+            },
+            child: Container(
+              margin: EdgeInsets.only(top: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                color: Colors.white,
+              ),
+              child: ListTile(
+                contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                leading: SizedBox(
+                  height: 50,
+                  child: Image.asset(imgs[index]),
                 ),
-                child: ListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
-                  leading: SizedBox(
-                    height: 50,
-                    child: Image.asset(imgs[index]),
-                  ),
-                  title: Text(
-                    names[index],
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyLarge!.copyWith(fontSize: 13.5),
-                  ),
-                  subtitle: Row(
-                    children: [
-                      Text(
-                        "No", // locale!.no,
-                        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                          fontSize: 12,
-                          color: Color(0xffa8aeb2),
-                        ),
+                title: Text(
+                  names[index],
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge!.copyWith(fontSize: 13.5),
+                ),
+                subtitle: Row(
+                  children: [
+                    Text(
+                      "No", // locale!.no,
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                        fontSize: 12,
+                        color: Color(0xffa8aeb2),
                       ),
-                      Spacer(),
-                      Text(
-                        "20 min",
-                        style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                          fontSize: 10,
-                          color: Color(0xffcccccc),
-                        ),
+                    ),
+                    Spacer(),
+                    Text(
+                      "20 min",
+                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                        fontSize: 10,
+                        color: Color(0xffcccccc),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

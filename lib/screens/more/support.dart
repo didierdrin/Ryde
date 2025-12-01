@@ -1,5 +1,3 @@
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:ryde_rw/components/widgets/color_button.dart';
 import 'package:ryde_rw/components/widgets/text_field.dart';
@@ -50,23 +48,17 @@ class Support extends StatelessWidget {
                 Column(
                   children: [
                     SizedBox(height: 42),
-                    FadedScaleAnimation(
-                      scaleDuration: const Duration(milliseconds: 600),
-                      child: SizedBox(
+                    SizedBox(
                         height: MediaQuery.of(context).size.width * 0.25,
                         child: Image.asset("assets/head_support.png"),
                       ),
-                    ),
+                    
                   ],
                 ),
               ],
             ),
           ),
-          FadedSlideAnimation(
-            beginOffset: Offset(0, 0.4),
-            endOffset: Offset(0, 0),
-            slideCurve: Curves.linearToEaseOut,
-            child: Stack(
+        Stack(
               alignment: Alignment.bottomCenter,
               children: [
                 Container(
@@ -109,7 +101,7 @@ class Support extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
+            
           ),
           PositionedDirectional(
             bottom: 0,
@@ -128,10 +120,8 @@ class Support extends StatelessWidget {
                     );
                   }
                 },
-                child: FadedScaleAnimation(
-                  scaleDuration: const Duration(milliseconds: 600),
-                  child: ColorButton("Submit"),
-                ),
+                child: ColorButton("Submit"),
+                
               ),
             ),
           ),
@@ -169,3 +159,4 @@ class Support extends StatelessWidget {
     }
   }
 }
+

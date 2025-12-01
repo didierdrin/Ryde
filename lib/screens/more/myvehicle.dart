@@ -1,5 +1,3 @@
-import 'package:animation_wrappers/animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -319,9 +317,7 @@ class MyVehicleTabState extends ConsumerState<MyVehicleTab> {
                   if (myVehicle?.approved != true)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: FadedScaleAnimation(
-                        scaleDuration: const Duration(milliseconds: 600),
-                        child: Opacity(
+                      child: Opacity(
                           opacity: 1,
                           child: BottomBar(
                             textColor: kWhiteColor,
@@ -343,7 +339,7 @@ class MyVehicleTabState extends ConsumerState<MyVehicleTab> {
                             text: isEditing ? "Cancel" : "Edit",
                           ),
                         ),
-                      ),
+                      
                     ),
                   // The Update (or Submit) button is active only when in editing mode.
                   if (myVehicle?.approved != true)
@@ -352,9 +348,7 @@ class MyVehicleTabState extends ConsumerState<MyVehicleTab> {
                         horizontal: 20,
                         vertical: 0,
                       ),
-                      child: FadedScaleAnimation(
-                        scaleDuration: const Duration(milliseconds: 600),
-                        child: Opacity(
+                      child: Opacity(
                           opacity: canEdit || isEditing ? 1 : 0.5,
                           child: BottomBar(
                             textColor: kWhiteColor,
@@ -372,7 +366,7 @@ class MyVehicleTabState extends ConsumerState<MyVehicleTab> {
                             text: submitOrUpdateText,
                           ),
                         ),
-                      ),
+                      
                     ),
                 ],
               ),
@@ -383,3 +377,4 @@ class MyVehicleTabState extends ConsumerState<MyVehicleTab> {
     );
   }
 }
+

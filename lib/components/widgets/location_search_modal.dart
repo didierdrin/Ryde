@@ -426,3 +426,4 @@ class LocationSearchModalState extends ConsumerState<LocationSearchModal> {
     );
   }
 }
+

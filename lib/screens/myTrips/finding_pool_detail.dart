@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:animation_wrappers/animations/faded_slide_animation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
@@ -332,11 +331,7 @@ class FindingPoolDetailConsumerState extends ConsumerState<FindingPoolDetail> {
                           width: MediaQuery.of(context).size.width,
                           height: !widget.isFindPool ? 440 : 600,
                           decoration: BoxDecoration(color: Colors.white),
-                          child: FadedSlideAnimation(
-                            beginOffset: Offset(0, 0.4),
-                            endOffset: Offset(0, 0),
-                            slideCurve: Curves.linearToEaseOut,
-                            child: ListView(
+                          child:  ListView(
                               physics: NeverScrollableScrollPhysics(),
                               padding: EdgeInsets.zero,
                               children: [
@@ -386,7 +381,7 @@ class FindingPoolDetailConsumerState extends ConsumerState<FindingPoolDetail> {
                                 ),
                               ],
                             ),
-                          ),
+                          
                         ),
                       ],
                     ),
@@ -729,3 +724,4 @@ class FindingPoolDetailConsumerState extends ConsumerState<FindingPoolDetail> {
     );
   }
 }
+

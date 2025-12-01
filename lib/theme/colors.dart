@@ -40,3 +40,4 @@ Color greyColor = const Color(0xFFEEEEEE);
 Color iconCart = const Color(0xFF555555);
 Color paymentBg = const Color(0xFFFAFAFA);
 Color mainColor =const  Color(0XFFF8F8F8);
+

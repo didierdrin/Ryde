@@ -1,4 +1,3 @@
-import 'package:animation_wrappers/animations/faded_slide_animation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,11 +59,7 @@ class _DriversState extends ConsumerState<DriversPool> {
           color: backgroundColor,
           borderRadius: BorderRadius.circular(15),
         ),
-        child: FadedSlideAnimation(
-          beginOffset: Offset(0.4, 0),
-          endOffset: Offset(0, 0),
-          slideCurve: Curves.linearToEaseOut,
-          child: Column(
+        child: Column(
             children: [
               if (driverLocationNear.isEmpty && !isLoading)
                 Center(
@@ -125,7 +120,8 @@ class _DriversState extends ConsumerState<DriversPool> {
             ],
           ),
         ),
-      ),
+      
     );
   }
 }
+

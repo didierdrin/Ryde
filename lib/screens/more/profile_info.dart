@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'package:animation_wrappers/animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -277,19 +275,18 @@ class ProfileInfoState extends ConsumerState<ProfileInfo> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            child: FadedScaleAnimation(
-              scaleDuration: const Duration(milliseconds: 600),
-              child: BottomBar(
+            child: BottomBar(
                 textColor: kWhiteColor,
                 onTap: () async {
                   await saveProfileInfo(user.id);
                 },
                 text: "Update Info",
               ),
-            ),
+            
           ),
         ],
       ),
     );
   }
 }
+

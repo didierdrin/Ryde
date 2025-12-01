@@ -74,3 +74,4 @@ class MapUtils {
     return fi.image;
   }
 }
+

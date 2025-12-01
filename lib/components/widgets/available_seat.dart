@@ -98,3 +98,4 @@ class ProfileAvatar extends ConsumerWidget {
     );
   }
 }
+

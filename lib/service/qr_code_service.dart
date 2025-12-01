@@ -207,3 +207,4 @@ class QRCodeService {
         .map((doc) => doc.data()?['qr_code_img_url'] as String?);
   }
 }
+

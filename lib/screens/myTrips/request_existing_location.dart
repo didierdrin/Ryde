@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:animation_wrappers/animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/animations/faded_slide_animation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -327,11 +325,7 @@ class RequestExistingLocationConsumerState
               width: MediaQuery.of(context).size.width,
               child: _buildGoogleMap(ref, widget.offer),
             ),
-            FadedSlideAnimation(
-              beginOffset: Offset(0, 0.4),
-              endOffset: Offset(0, 0),
-              slideCurve: Curves.linearToEaseOut,
-              child: Stack(
+            Stack(
                 alignment: Alignment.bottomCenter,
                 children: [
                   Container(
@@ -530,11 +524,7 @@ class RequestExistingLocationConsumerState
                           topRight: Radius.circular(20),
                         ),
                       ),
-                      child: FadedSlideAnimation(
-                        beginOffset: Offset(0, 0.4),
-                        endOffset: Offset(0, 0),
-                        slideCurve: Curves.linearToEaseOut,
-                        child: ListView(
+                      child: ListView(
                           physics: NeverScrollableScrollPhysics(),
                           padding: EdgeInsets.zero,
                           children: [
@@ -694,7 +684,7 @@ class RequestExistingLocationConsumerState
                           ],
                         ),
                       ),
-                    ),
+                    
                   ),
                   if (poolSeatValue != null &&
                       widget.requestUser.seats != null &&
@@ -759,11 +749,7 @@ class RequestExistingLocationConsumerState
                               onTap: () async {
                                 await _requestRider();
                               },
-                              child: FadedScaleAnimation(
-                                scaleDuration: const Duration(
-                                  milliseconds: 600,
-                                ),
-                                child: SizedBox(
+                              child: SizedBox(
                                   height: 52,
                                   child: isRideRequested && !widget.isFindPool
                                       ? Container(
@@ -815,13 +801,13 @@ class RequestExistingLocationConsumerState
                                 ),
                               ),
                             ),
-                          ),
+                          
                         ],
                       ),
                     ),
                 ],
               ),
-            ),
+            
           ],
         ),
       ),
@@ -862,3 +848,4 @@ class RequestExistingLocationConsumerState
     );
   }
 }
+

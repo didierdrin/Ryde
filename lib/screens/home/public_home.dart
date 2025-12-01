@@ -1,7 +1,4 @@
 import 'dart:async';
-// import 'package:animation_wrappers/animation_wrappers.dart';
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -107,11 +104,7 @@ class PublicHomeConsumerState extends ConsumerState<PublicHome> {
           alignment: Alignment.bottomCenter,
           children: [
             _buildGoogleMap(ref),
-            FadedSlideAnimation(
-              beginOffset: Offset(0, 0.4),
-              endOffset: Offset(0, 0),
-              slideCurve: Curves.linearToEaseOut,
-              child: Container(
+            Container(
                 margin: EdgeInsets.only(bottom: 50),
                 width: MediaQuery.of(context).size.width,
                 height: 390,
@@ -154,12 +147,8 @@ class PublicHomeConsumerState extends ConsumerState<PublicHome> {
                   ],
                 ),
               ),
-            ),
-            FadedSlideAnimation(
-              beginOffset: Offset(0, 0.4),
-              endOffset: Offset(0, 0),
-              slideCurve: Curves.linearToEaseOut,
-              child: Container(
+          
+           Container(
                 width: MediaQuery.of(context).size.width,
                 height: 360,
                 decoration: BoxDecoration(
@@ -179,7 +168,7 @@ class PublicHomeConsumerState extends ConsumerState<PublicHome> {
                   ),
                 ),
               ),
-            ),
+            
           ],
         ),
       ),
@@ -286,3 +275,4 @@ class PublicHomeConsumerState extends ConsumerState<PublicHome> {
     );
   }
 }
+

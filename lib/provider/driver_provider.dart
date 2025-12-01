@@ -19,3 +19,4 @@ final driverStreamProvider = StreamProvider.family<Driver?, String>((
   final driverService = ref.watch(driverServiceProvider);
   return driverService.getDriverStreamById(driverId);
 });
+

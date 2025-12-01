@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:animation_wrappers/animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -458,16 +456,14 @@ class DisplayAvailableDriverGoogleMapState
                     left: 16,
                     right: 16,
                     child: Expanded(
-                      child: FadedScaleAnimation(
-                        scaleDuration: const Duration(milliseconds: 600),
-                        child: BottomBar(
+                      child: BottomBar(
                           isValid: isValid(),
                           onTap: () async {
                             await _requestRider();
                           },
                           text: "Request Ride",
                           textColor: kWhiteColor,
-                        ),
+                        
                       ),
                     ),
                   ),
@@ -810,3 +806,4 @@ class DisplayAvailableDriverGoogleMapState
     );
   }
 }
+

@@ -1,5 +1,3 @@
-import 'package:animation_wrappers/Animations/faded_scale_animation.dart';
-import 'package:animation_wrappers/Animations/faded_slide_animation.dart';
 import 'package:flutter/material.dart';
 import 'package:ryde_rw/components/stars.dart';
 import 'package:ryde_rw/components/widgets/color_button.dart';
@@ -33,60 +31,7 @@ class EndTripPooler extends StatelessWidget {
         child: Column(
           children: [
             Spacer(flex: 2),
-            FadedScaleAnimation(
-              scaleDuration: const Duration(milliseconds: 600),
-              child: SizedBox(
-                width: 220,
-                child: Image.asset("assets/img_tripcomplete.png"),
-              ),
-            ),
-            SizedBox(height: 40),
-            Text(
-              "Trip Completed",
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge!.copyWith(fontSize: 22),
-            ),
-            SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "You have earned",
-                  textAlign: TextAlign.center,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium!.copyWith(fontSize: 15),
-                ),
-                SizedBox(width: 2),
-                Text(
-                  " \$34.50",
-                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                    fontSize: 14,
-                    color: Colors.black,
-                  ),
-                ),
-              ],
-            ),
-            Text(
-              "from this trip",
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium!.copyWith(fontSize: 14),
-            ),
-            Spacer(),
-            GestureDetector(
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => EndTripPoolTaker()),
-                );
-              },
-              child: FadedSlideAnimation(
-                beginOffset: Offset(0, 0.4),
-                endOffset: Offset(0, 0),
-                slideCurve: Curves.linearToEaseOut,
-                child: Container(
+            Container(
                   width: MediaQuery.of(context).size.width,
                   height: 350,
                   decoration: BoxDecoration(
@@ -178,8 +123,8 @@ class EndTripPooler extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
-              ),
+                
+              
             ),
           ],
         ),
@@ -187,3 +132,4 @@ class EndTripPooler extends StatelessWidget {
     );
   }
 }
+

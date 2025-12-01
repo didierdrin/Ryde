@@ -104,3 +104,4 @@ final locationsProvider = StreamProvider<Position>((ref) async* {
   await locationService.checkLocationPermissions();
   yield* locationService.locationStream;
 });
+

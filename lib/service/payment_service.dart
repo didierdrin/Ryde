@@ -40,3 +40,4 @@ final paymentTransactionsProvider =
       final service = PaymentsService();
       return await service.getAllPaymentsForUser(userId);
     });
+
