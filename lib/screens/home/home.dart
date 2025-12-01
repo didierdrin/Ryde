@@ -33,10 +33,12 @@ class HomeConsumerState extends ConsumerState<Home> {
     final user = ref.watch(userProvider);
 
     if (user == null) {
-      hasVehicle = false;
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    final vehicleAsyncValue = ref.watch(VehicleService.vehicleStream(user!.id));
+    final vehicleAsyncValue = ref.watch(VehicleService.vehicleStream(user.id));
     hasVehicle = vehicleAsyncValue.value != null;
 
     final notificationsStream = ref.watch(

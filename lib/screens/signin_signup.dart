@@ -9,6 +9,7 @@ import 'package:ryde_rw/screens/home/home.dart';
 import 'package:ryde_rw/service/user_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
+import 'package:ryde_rw/screens/all_bottom_navigations_screen.dart';
 import 'package:ryde_rw/models/user.dart' as app_user;
 
 class SigninSignup extends ConsumerStatefulWidget {
@@ -69,32 +70,38 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
       }
 
       if (userCredential.user != null && mounted) {
-        // Get or create user in Firestore and set in shared state
         final firebaseUser = userCredential.user!;
-        app_user.User? appUser = await UserService.getUser(firebaseUser.email!);
-
-        if (appUser == null && !_isLogin) {
-          // Create new user for sign up
-          final userData = {
-            'phoneNumber': firebaseUser.email!,
-            'fullName': firebaseUser.displayName,
-            'profilePicture': firebaseUser.photoURL,
-            'countryCode': '+1',
-            'momoPhoneNumber': firebaseUser.email!,
-            'tMoney': firebaseUser.email!,
-            'recommendations': [],
-            'tokens': [],
-            'joinedOn': DateTime.now(),
-            'walletBalance': 0,
-          };
-          appUser = await UserService.addUser(userData);
-        }
-
+        final email = firebaseUser.email!;
+        
+        // Create user data directly
+        final userData = {
+          'phoneNumber': email,
+          'fullName': firebaseUser.displayName ?? email.split('@')[0],
+          'profilePicture': firebaseUser.photoURL ?? '',
+          'country_code': '+1',
+          'momoPhoneNumber': email,
+          'tMoney': email,
+          'recommendations': <dynamic>[],
+          'tokens': <dynamic>[],
+          'joinedOn': DateTime.now(),
+          'walletBalance': 0,
+        };
+        
+        final appUser = await UserService.addUser(userData);
+        
         if (appUser != null) {
           ref.read(userProvider.notifier).setUser(appUser);
-          Navigator.of(
-            context,
-          ).pushReplacement(MaterialPageRoute(builder: (context) => Home()));
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const AllBottomNavigationsScreen()),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to create user profile')),
+            );
+          }
         }
       }
     } on firebase_auth.FirebaseAuthException catch (e) {
@@ -114,7 +121,9 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
           context,
         ).showSnackBar(SnackBar(content: Text(message)));
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('Auth error: $e');
+      print('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('An error occurred: ${e.toString()}')),
