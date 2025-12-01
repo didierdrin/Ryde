@@ -154,8 +154,8 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
           ),
           centerTitle: true,
         ),
-        body: GestureDetector(
-            onTap: () => FocusScope.of(context).unfocus(),
+        body: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Form(

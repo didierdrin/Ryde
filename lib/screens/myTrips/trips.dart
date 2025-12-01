@@ -34,97 +34,180 @@ class _TripsState extends ConsumerState<Trips> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(userProvider)!;
-
-    final vehicleAsyncValue = ref.watch(VehicleService.vehicleStream(user.id));
-    final requestStreams = ref.watch(
-      RequestRideService.allRequestRideStreamProvider,
-    );
-    final isLoading = vehicleAsyncValue.isLoading || requestStreams.isLoading;
-
-    bool hasVehicle = vehicleAsyncValue.value != null;
-    final requested = requestStreams.value ?? [];
-    bool driverHasMadeRequest = requested.any((request) {
-      return request.requestedBy == user.id;
-    });
-
-    int tabLength = hasVehicle ? (driverHasMadeRequest ? 3 : 3) : 2;
-
-    if (tabController.length != tabLength) {
-      tabController.dispose();
-      tabController = TabController(
-        length: tabLength,
-        vsync: this,
-        initialIndex: widget.index < tabLength ? widget.index : 0,
-      );
-    }
-    return ModalProgressHUD(
-      inAsyncCall: isLoading,
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: true,
-          elevation: 0,
-          centerTitle: true,
-          backgroundColor: Colors.white,
-          title: Text(
-            "My Trips",
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w600),
+    try {
+      final user = ref.watch(userProvider);
+      
+      if (user == null) {
+        print('Trips: User is null, showing loading screen');
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('My Trips'),
+            backgroundColor: Colors.white,
           ),
-          actions: [
-            IconButton(
-              icon: Icon(Icons.history, color: Colors.grey[300], size: 17),
-              onPressed: () {},
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading user data...'),
+              ],
             ),
-          ],
-          bottom: TabBar(
+          ),
+        );
+      }
+
+      print('Trips: User loaded successfully: ${user.id}');
+
+      final vehicleAsyncValue = ref.watch(VehicleService.vehicleStream(user.id));
+      final requestStreams = ref.watch(
+        RequestRideService.allRequestRideStreamProvider,
+      );
+      final isLoading = vehicleAsyncValue.isLoading || requestStreams.isLoading;
+
+      bool hasVehicle = vehicleAsyncValue.value != null;
+      final requested = requestStreams.value ?? [];
+      bool driverHasMadeRequest = requested.any((request) {
+        return request.requestedBy == user.id;
+      });
+      
+      print('Trips: Vehicle status - hasVehicle: $hasVehicle, requests: ${requested.length}');
+
+      int tabLength = hasVehicle ? (driverHasMadeRequest ? 3 : 3) : 2;
+
+      if (tabController.length != tabLength) {
+        tabController.dispose();
+        tabController = TabController(
+          length: tabLength,
+          vsync: this,
+          initialIndex: widget.index < tabLength ? widget.index : 0,
+        );
+        print('Trips: TabController recreated with length: $tabLength');
+      }
+      return ModalProgressHUD(
+        inAsyncCall: isLoading,
+        child: Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: true,
+            elevation: 0,
+            centerTitle: true,
+            backgroundColor: Colors.white,
+            title: Text(
+              "My Trips",
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w600),
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.history, color: Colors.grey[300], size: 17),
+                onPressed: () {
+                  print('Trips: History button pressed');
+                },
+              ),
+            ],
+            bottom: TabBar(
+              controller: tabController,
+              isScrollable: true,
+              labelColor: Theme.of(context).primaryColor,
+              indicatorSize: TabBarIndicatorSize.label,
+              indicatorColor: Theme.of(context).primaryColor,
+              indicatorWeight: 4.0,
+              tabs: hasVehicle
+                  ? (driverHasMadeRequest
+                        ? [
+                            Tab(text: "My Trips"),
+                            Tab(text: 'NearBy Passengers'),
+                            Tab(text: 'NearBy Drivers'),
+                          ]
+                        : [
+                            Tab(text: "My Trips"),
+                            Tab(text: 'NearBy Passengers'),
+                            Tab(text: 'NearBy Drivers'),
+                          ])
+                  : [
+                      Tab(text: "My Trips"),
+                      Tab(text: 'NearBy Drivers'),
+                    ],
+            ),
+          ),
+          backgroundColor: Colors.white,
+          body: TabBarView(
             controller: tabController,
-            isScrollable: true,
-            labelColor: Theme.of(context).primaryColor,
-            indicatorSize: TabBarIndicatorSize.label,
-            indicatorColor: Theme.of(context).primaryColor,
-            indicatorWeight: 4.0,
-            tabs: hasVehicle
+            children: hasVehicle
                 ? (driverHasMadeRequest
                       ? [
-                          Tab(text: "My Trips"),
-                          Tab(text: 'NearBy Passengers'),
-                          Tab(text: 'NearBy Drivers'),
+                          _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
+                          _buildSafeWidget(() => SearchPassengers(), 'SearchPassengers'),
+                          _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
                         ]
                       : [
-                          Tab(text: "My Trips"),
-                          Tab(text: 'NearBy Passengers'),
-                          Tab(text: 'NearBy Drivers'),
+                          _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
+                          _buildSafeWidget(() => SearchPassengers(), 'SearchPassengers'),
+                          _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
                         ])
                 : [
-                    Tab(text: "My Trips"),
-                    // Tab(text: 'NearBy Passengers'),
-                    Tab(text: 'NearBy Drivers'),
+                    _buildSafeWidget(() => FindingTab(), 'FindingTab'),
+                    _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
                   ],
           ),
         ),
-        backgroundColor: Colors.white,
-        body: TabBarView(
-          controller: tabController,
-          children: hasVehicle
-              ? (driverHasMadeRequest
-                    ? [
-                        OfferingTab(),
-                        // FindingTab(),
-                        SearchPassengers(),
-                        Searchdrivers(),
-                      ]
-                    : [OfferingTab(), SearchPassengers(), Searchdrivers()])
-              : [
-                  FindingTab(),
-                  // DriversPool(),
-                  // SearchPassengers(),
-                  Searchdrivers(),
-                ],
+      );
+    } catch (e, stackTrace) {
+      print('Trips: Critical error in build method: $e');
+      print('Stack trace: $stackTrace');
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('My Trips'),
+          backgroundColor: Colors.white,
         ),
-      ),
-    );
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text('Something went wrong'),
+              SizedBox(height: 8),
+              Text('Error: ${e.toString()}', style: TextStyle(fontSize: 12)),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {});
+                },
+                child: Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildSafeWidget(Widget Function() builder, String widgetName) {
+    try {
+      return builder();
+    } catch (e, stackTrace) {
+      print('Trips: Error building $widgetName: $e');
+      print('Stack trace: $stackTrace');
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: Colors.red),
+            SizedBox(height: 16),
+            Text('Error loading $widgetName'),
+            SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {});
+              },
+              child: Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }
 

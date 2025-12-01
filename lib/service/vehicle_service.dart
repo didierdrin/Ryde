@@ -44,14 +44,20 @@ class VehicleService {
   }
 
   Future<Vehicle?> getVehicleData(String userId) async {
-    final vehicleData = await _firestore
-        .collection(collection)
-        .where('userId', isEqualTo: userId)
-        .get();
-    if (vehicleData.docs.isNotEmpty) {
-      return Vehicle.fromJSON(vehicleData.docs.first.data());
+    try {
+      final vehicleData = await _firestore
+          .collection(collection)
+          .where('userId', isEqualTo: userId)
+          .get();
+      if (vehicleData.docs.isNotEmpty) {
+        return Vehicle.fromJSON(vehicleData.docs.first.data());
+      }
+      return null;
+    } catch (e, stackTrace) {
+      print('VehicleService: Error getting vehicle data: $e');
+      print('Stack trace: $stackTrace');
+      return null;
     }
-    return null;
   }
 
   static final vehicleStream = StreamProvider.family<Vehicle?, String>((
@@ -63,17 +69,27 @@ class VehicleService {
         .doc(phone)
         .snapshots()
         .map((snapshot) {
-          if (snapshot.exists && snapshot.data() != null) {
-            final data = snapshot.data()!;
-            data['id'] = snapshot.id;
-            if (data['approved'] == true) {
-              return Vehicle.fromJSON(data);
+          try {
+            if (snapshot.exists && snapshot.data() != null) {
+              final data = snapshot.data()!;
+              data['id'] = snapshot.id;
+              if (data['approved'] == true) {
+                return Vehicle.fromJSON(data);
+              } else {
+                return null;
+              }
             } else {
               return null;
             }
-          } else {
+          } catch (e, stackTrace) {
+            print('VehicleService: Error in vehicleStream: $e');
+            print('Stack trace: $stackTrace');
             return null;
           }
+        })
+        .handleError((error, stackTrace) {
+          print('VehicleService: Stream error: $error');
+          print('Stack trace: $stackTrace');
         });
   });
 
@@ -82,12 +98,29 @@ class VehicleService {
         .collection(collection)
         .snapshots()
         .map(
-          (event) => event.docs.map((e) {
-            var data = e.data();
-            data['id'] = e.id;
-            return Vehicle.fromJSON(data);
-          }).toList(),
-        );
+          (event) {
+            try {
+              return event.docs.map((e) {
+                try {
+                  var data = e.data();
+                  data['id'] = e.id;
+                  return Vehicle.fromJSON(data);
+                } catch (e) {
+                  print('VehicleService: Error parsing vehicle document: $e');
+                  return null;
+                }
+              }).where((vehicle) => vehicle != null).cast<Vehicle>().toList();
+            } catch (e, stackTrace) {
+              print('VehicleService: Error in allVehicleStreamProvider: $e');
+              print('Stack trace: $stackTrace');
+              return <Vehicle>[];
+            }
+          },
+        )
+        .handleError((error, stackTrace) {
+          print('VehicleService: All vehicles stream error: $error');
+          print('Stack trace: $stackTrace');
+        });
   });
 
   static final vehicleDetailsStreamProvider =

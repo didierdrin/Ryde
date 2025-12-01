@@ -181,6 +181,11 @@ class NotificationService {
         final userId = ref.read(userProvider)?.id ?? '';
         print('Fetching notifications for user: $userId');
 
+        if (userId.isEmpty) {
+          print('NotificationService: User ID is empty, returning empty stream');
+          return Stream.value([]);
+        }
+
         try {
           return firestore
               .collection(collection)
@@ -188,18 +193,36 @@ class NotificationService {
               .orderBy('created_at', descending: true)
               .snapshots()
               .map((snapshot) {
-                print('Received ${snapshot.docs.length} notifications');
-                return snapshot.docs
-                    .map(
-                      (doc) => notification_model.UserNotification.fromJson(
-                        Map<String, dynamic>.from(doc.data()),
-                        doc.id,
-                      ),
-                    )
-                    .toList();
+                try {
+                  print('Received ${snapshot.docs.length} notifications');
+                  return snapshot.docs
+                      .map((doc) {
+                        try {
+                          return notification_model.UserNotification.fromJson(
+                            Map<String, dynamic>.from(doc.data()),
+                            doc.id,
+                          );
+                        } catch (e) {
+                          print('NotificationService: Error parsing notification document: $e');
+                          return null;
+                        }
+                      })
+                      .where((notification) => notification != null)
+                      .cast<notification_model.UserNotification>()
+                      .toList();
+                } catch (e, stackTrace) {
+                  print('NotificationService: Error processing notifications: $e');
+                  print('Stack trace: $stackTrace');
+                  return <notification_model.UserNotification>[];
+                }
+              })
+              .handleError((error, stackTrace) {
+                print('NotificationService: Stream error: $error');
+                print('Stack trace: $stackTrace');
               });
-        } catch (e) {
-          print('Error setting up notification stream: $e');
+        } catch (e, stackTrace) {
+          print('NotificationService: Error setting up notification stream: $e');
+          print('Stack trace: $stackTrace');
           return Stream.value([]);
         }
       });
@@ -207,17 +230,48 @@ class NotificationService {
   static final userRideNotificationStream =
       StreamProvider<List<RideNotification>>((ref) {
         final userId = ref.read(userProvider)?.id ?? '';
-        return firestore
-            .collection(rideNotificationsCollection)
-            .where('recipient_id', isEqualTo: userId)
-            .orderBy('created_at', descending: true)
-            .orderBy(FieldPath.documentId, descending: true)
-            .snapshots()
-            .map(
-              (snapshot) => snapshot.docs
-                  .map((doc) => RideNotification.fromJson(doc.data(), doc.id))
-                  .toList(),
-            );
+        
+        if (userId.isEmpty) {
+          print('NotificationService: User ID is empty for ride notifications');
+          return Stream.value([]);
+        }
+        
+        try {
+          return firestore
+              .collection(rideNotificationsCollection)
+              .where('recipient_id', isEqualTo: userId)
+              .orderBy('created_at', descending: true)
+              .orderBy(FieldPath.documentId, descending: true)
+              .snapshots()
+              .map((snapshot) {
+                try {
+                  return snapshot.docs
+                      .map((doc) {
+                        try {
+                          return RideNotification.fromJson(doc.data(), doc.id);
+                        } catch (e) {
+                          print('NotificationService: Error parsing ride notification: $e');
+                          return null;
+                        }
+                      })
+                      .where((notification) => notification != null)
+                      .cast<RideNotification>()
+                      .toList();
+                } catch (e, stackTrace) {
+                  print('NotificationService: Error processing ride notifications: $e');
+                  print('Stack trace: $stackTrace');
+                  return <RideNotification>[];
+                }
+              })
+              .handleError((error, stackTrace) {
+                print('NotificationService: Ride notification stream error: $error');
+                print('Stack trace: $stackTrace');
+              });
+        } catch (e, stackTrace) {
+          print('NotificationService: Error setting up ride notification stream: $e');
+          print('Stack trace: $stackTrace');
+          return Stream.value([]);
+        }
       });
 
   static showNotification(RemoteMessage notification) async {

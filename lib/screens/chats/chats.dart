@@ -8,22 +8,66 @@ class Chats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text(
-          "Chats",
-          style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-            fontWeight: FontWeight.w600,
-            fontSize: 22,
+    try {
+      print('Chats: Building chat screen');
+      return Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: Text(
+            "Chats",
+            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+              fontWeight: FontWeight.w600,
+              fontSize: 22,
+            ),
+          ),
+          backgroundColor: Colors.white,
+          elevation: 0,
+        ),
+        body: _buildSafeChatRooms(),
+      );
+    } catch (e, stackTrace) {
+      print('Chats: Critical error in build method: $e');
+      print('Stack trace: $stackTrace');
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Chats'),
+          backgroundColor: Colors.white,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text('Something went wrong'),
+              SizedBox(height: 8),
+              Text('Error: ${e.toString()}', style: TextStyle(fontSize: 12)),
+            ],
           ),
         ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: ChatRooms(),
-    );
+      );
+    }
+  }
+
+  Widget _buildSafeChatRooms() {
+    try {
+      return ChatRooms();
+    } catch (e, stackTrace) {
+      print('Chats: Error building ChatRooms: $e');
+      print('Stack trace: $stackTrace');
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('Error loading chats'),
+            SizedBox(height: 8),
+            Text('Please try again later'),
+          ],
+        ),
+      );
+    }
   }
 }
 
@@ -53,65 +97,99 @@ class ChatRooms extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10),
-      color: backgroundColor,
-      child: ListView.builder(
-        padding: EdgeInsets.only(bottom: 10),
-        itemCount: 8,
-        itemBuilder: (BuildContext context, int index) {
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ChatPage()),
+    try {
+      print('ChatRooms: Building chat rooms list');
+      return Container(
+        padding: EdgeInsets.symmetric(horizontal: 10),
+        color: backgroundColor,
+        child: ListView.builder(
+          padding: EdgeInsets.only(bottom: 10),
+          itemCount: 8,
+          itemBuilder: (BuildContext context, int index) {
+            try {
+              return GestureDetector(
+                onTap: () {
+                  try {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => ChatPage()),
+                    );
+                  } catch (e) {
+                    print('ChatRooms: Error navigating to chat: $e');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error opening chat')),
+                    );
+                  }
+                },
+                child: Container(
+                  margin: EdgeInsets.only(top: 10),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.white,
+                  ),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                    leading: SizedBox(
+                      height: 50,
+                      child: Image.asset(imgs[index]),
+                    ),
+                    title: Text(
+                      names[index],
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyLarge!.copyWith(fontSize: 13.5),
+                    ),
+                    subtitle: Row(
+                      children: [
+                        Text(
+                          "No",
+                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                            fontSize: 12,
+                            color: Color(0xffa8aeb2),
+                          ),
+                        ),
+                        Spacer(),
+                        Text(
+                          "20 min",
+                          style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                            fontSize: 10,
+                            color: Color(0xffcccccc),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               );
-            },
-            child: Container(
-              margin: EdgeInsets.only(top: 10),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: Colors.white,
-              ),
-              child: ListTile(
-                contentPadding: EdgeInsets.symmetric(horizontal: 10),
-                leading: SizedBox(
-                  height: 50,
-                  child: Image.asset(imgs[index]),
+            } catch (e) {
+              print('ChatRooms: Error building chat item at index $index: $e');
+              return Container(
+                margin: EdgeInsets.only(top: 10),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: Colors.grey[100],
                 ),
-                title: Text(
-                  names[index],
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyLarge!.copyWith(fontSize: 13.5),
-                ),
-                subtitle: Row(
-                  children: [
-                    Text(
-                      "No",
-                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        fontSize: 12,
-                        color: Color(0xffa8aeb2),
-                      ),
-                    ),
-                    Spacer(),
-                    Text(
-                      "20 min",
-                      style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                        fontSize: 10,
-                        color: Color(0xffcccccc),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
+                child: Text('Error loading chat'),
+              );
+            }
+          },
+        ),
+      );
+    } catch (e, stackTrace) {
+      print('ChatRooms: Critical error in build method: $e');
+      print('Stack trace: $stackTrace');
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: Colors.red),
+            SizedBox(height: 16),
+            Text('Error loading chat rooms'),
+          ],
+        ),
+      );
+    }
   }
 }
 

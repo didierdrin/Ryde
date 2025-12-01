@@ -30,92 +30,124 @@ class HomeConsumerState extends ConsumerState<Home> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(userProvider);
+    try {
+      final user = ref.watch(userProvider);
 
-    if (user == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      if (user == null) {
+        print('Home: User is null, showing loading screen');
+        return const Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading user data...'),
+              ],
+            ),
+          ),
+        );
+      }
+
+      print('Home: User loaded successfully: ${user.id}');
+
+      final vehicleAsyncValue = ref.watch(VehicleService.vehicleStream(user.id));
+      hasVehicle = vehicleAsyncValue.value != null;
+      print('Home: Vehicle status - hasVehicle: $hasVehicle');
+
+      final notificationsStream = ref.watch(
+        NotificationService.userNotificationStream,
       );
-    }
+      
+      final notifications = notificationsStream.value ?? [];
+      final isNotified = notifications.where((e) => !e.isRead).isNotEmpty;
+      final tabsLength = hasVehicle ? 2 : 1;
+      print('Home: Notifications loaded - count: ${notifications.length}, unread: $isNotified');
 
-    final vehicleAsyncValue = ref.watch(VehicleService.vehicleStream(user.id));
-    hasVehicle = vehicleAsyncValue.value != null;
+      final diplayDriverNearYouStream = ref.watch(
+        OfferPoolService.diplayDriverNearYou,
+      );
+      final diplayPassengerNearYouStream = ref.watch(
+        RequestRideService.diplayPassengerNearYou,
+      );
 
-    final notificationsStream = ref.watch(
-      NotificationService.userNotificationStream,
-    );
-    notificationsStream.isLoading;
+      final isLoading =
+          diplayDriverNearYouStream.isLoading ||
+          diplayPassengerNearYouStream.isLoading;
+      final driverNearYou = diplayDriverNearYouStream.value ?? [];
+      final passengerNearYou = diplayPassengerNearYouStream.value ?? [];
+      print('Home: Nearby data - drivers: ${driverNearYou.length}, passengers: ${passengerNearYou.length}');
 
-    final notifications = notificationsStream.value ?? [];
-    final isNotified = notifications.where((e) => !e.isRead).isNotEmpty;
-    final tabsLength = hasVehicle ? 2 : 1;
+      if (isLoading) {
+        print('Home: Still loading nearby data');
+        return Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading nearby rides...'),
+              ],
+            ),
+          ),
+        );
+      }
 
-    final diplayDriverNearYouStream = ref.watch(
-      OfferPoolService.diplayDriverNearYou,
-    );
-    final diplayPassengerNearYouStream = ref.watch(
-      RequestRideService.diplayPassengerNearYou,
-    );
-
-    final isLoading =
-        diplayDriverNearYouStream.isLoading ||
-        diplayPassengerNearYouStream.isLoading;
-    final driverNearYou = diplayDriverNearYouStream.value ?? [];
-    final passengerNearYou = diplayPassengerNearYouStream.value ?? [];
-
-    if (isLoading) {
-      return Center(child: CircularProgressIndicator());
-    }
-
-    return DefaultTabController(
-      length: tabsLength,
-      child: Scaffold(
-        key: scaffoldKey,
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 10),
-              child: Stack(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      scaffoldKey.currentState!.openEndDrawer();
-                    },
-                    child: Container(
-                      height: 45,
-                      width: 45,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.notifications_none_rounded,
-                        size: 30,
-                        color: Colors.black45,
-                      ),
-                    ),
-                  ),
-                  if (isNotified)
-                    Positioned(
-                      top: 8,
-                      right: 4,
+      print('Home: Rendering main UI with tabsLength: $tabsLength');
+      return DefaultTabController(
+        length: tabsLength,
+        child: Scaffold(
+          key: scaffoldKey,
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        try {
+                          scaffoldKey.currentState?.openEndDrawer();
+                        } catch (e) {
+                          print('Home: Error opening drawer: $e');
+                        }
+                      },
                       child: Container(
-                        width: 10,
-                        height: 10,
+                        height: 45,
+                        width: 45,
                         decoration: BoxDecoration(
-                          color: kMainColor,
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.notifications_none_rounded,
+                          size: 30,
+                          color: Colors.black45,
                         ),
                       ),
                     ),
-                ],
+                    if (isNotified)
+                      Positioned(
+                        top: 8,
+                        right: 4,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: kMainColor,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         // endDrawer: Notifications(
         //   onDelete: () async {
         //     Navigator.pop(context);
@@ -214,9 +246,33 @@ class HomeConsumerState extends ConsumerState<Home> {
               },
             ),
           ],
+        ),),
+      );
+    } catch (e, stackTrace) {
+      print('Home: Critical error in build method: $e');
+      print('Stack trace: $stackTrace');
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text('Something went wrong'),
+              SizedBox(height: 8),
+              Text('Error: ${e.toString()}', style: TextStyle(fontSize: 12)),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {});
+                },
+                child: Text('Retry'),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   Widget _buildGoogleMap(

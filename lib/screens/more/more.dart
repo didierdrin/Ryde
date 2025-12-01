@@ -80,8 +80,27 @@ class More extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    
-    final user = ref.watch(userProvider)!;
+    try {
+      final user = ref.watch(userProvider);
+      
+      if (user == null) {
+        print('More: User is null, showing loading screen');
+        return Scaffold(
+          backgroundColor: backgroundColor,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading user data...'),
+              ],
+            ),
+          ),
+        );
+      }
+
+      print('More: User loaded successfully: ${user.id}');
     // final totalBalance = ref.watch(totalBalanceProvider(user.id));
     List<String> title = [
       "Manage Address",
@@ -98,11 +117,11 @@ class More extends ConsumerWidget {
       "Logout",
     ];
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: ListView(
-          children: [
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        body: SafeArea(
+          child: ListView(
+            children: [
             Container(
               height: 180,
               width: MediaQuery.of(context).size.width,
@@ -163,11 +182,18 @@ class More extends ConsumerWidget {
                         Spacer(),
                         GestureDetector(
                           onTap: () async {
-                            final qrData =
-                                'tel:*182*1*1*${removeCountryCode(user.momoPhoneNumber)}#';
-                            final qrFilePath =
-                                await QRCodeService.generateQRCodeImage(qrData);
-                            showBottomSheet(context, qrFilePath);
+                            try {
+                              final qrData =
+                                  'tel:*182*1*1*${removeCountryCode(user.momoPhoneNumber)}#';
+                              final qrFilePath =
+                                  await QRCodeService.generateQRCodeImage(qrData);
+                              showBottomSheet(context, qrFilePath);
+                            } catch (e) {
+                              print('More: Error generating QR code: $e');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error generating QR code')),
+                              );
+                            }
                           },
                           child: Stack(
                             alignment: Alignment.centerLeft,
@@ -282,16 +308,23 @@ class More extends ConsumerWidget {
                           itemBuilder: (BuildContext context, int index) {
                             return ListTile(
                               onTap: () {
-                                if (index == title.length - 1) {
-                                  showLogoutBottomSheet(context, ref);
-                                } else if (index == 1) {
-                                  launchWhatsApp(context);
-                                } else {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => routes[index],
-                                    ),
+                                try {
+                                  if (index == title.length - 1) {
+                                    showLogoutBottomSheet(context, ref);
+                                  } else if (index == 1) {
+                                    launchWhatsApp(context);
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => routes[index],
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  print('More: Error handling tap for index $index: $e');
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: ${e.toString()}')),
                                   );
                                 }
                               },
@@ -373,10 +406,36 @@ Container(
                 ),
               ),
             
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e, stackTrace) {
+      print('More: Critical error in build method: $e');
+      print('Stack trace: $stackTrace');
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text('Something went wrong'),
+              SizedBox(height: 8),
+              Text('Error: ${e.toString()}', style: TextStyle(fontSize: 12)),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  // Trigger rebuild
+                },
+                child: Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   void showBottomSheet(BuildContext context, String fileqrcode) {
