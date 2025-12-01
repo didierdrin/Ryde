@@ -1,0 +1,274 @@
+import 'package:animation_wrappers/animation_wrappers.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+import 'package:ryde_rw/components/widgets/button_bar.dart';
+import 'package:ryde_rw/screens/home/home.dart';
+import 'package:ryde_rw/service/user_service.dart';
+import 'package:ryde_rw/shared/shared_states.dart';
+import 'package:ryde_rw/theme/colors.dart';
+import 'package:ryde_rw/models/user.dart' as app_user;
+
+class SigninSignup extends ConsumerStatefulWidget {
+  const SigninSignup({super.key});
+
+  @override
+  ConsumerState<SigninSignup> createState() => SigninSignupState();
+}
+
+class SigninSignupState extends ConsumerState<SigninSignup> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+  bool _isLogin = true;
+  bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 300), () {
+      final user = ref.read(userProvider);
+      if (user != null) {
+        UserService.unregisterForNotifications(user);
+      }
+      ref.read(userProvider.notifier).state = null;
+    });
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleAuth() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      firebase_auth.UserCredential userCredential;
+      if (_isLogin) {
+        userCredential = await firebase_auth.FirebaseAuth.instance
+            .signInWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            );
+      } else {
+        userCredential = await firebase_auth.FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            );
+      }
+
+      if (userCredential.user != null && mounted) {
+        // Get or create user in Firestore and set in shared state
+        final firebaseUser = userCredential.user!;
+        app_user.User? appUser = await UserService.getUser(firebaseUser.email!);
+
+        if (appUser == null && !_isLogin) {
+          // Create new user for sign up
+          final userData = {
+            'phoneNumber': firebaseUser.email!,
+            'fullName': firebaseUser.displayName,
+            'profilePicture': firebaseUser.photoURL,
+            'countryCode': '+1',
+            'momoPhoneNumber': firebaseUser.email!,
+            'tMoney': firebaseUser.email!,
+            'recommendations': [],
+            'tokens': [],
+            'joinedOn': DateTime.now(),
+            'walletBalance': 0,
+          };
+          appUser = await UserService.addUser(userData);
+        }
+
+        if (appUser != null) {
+          ref.read(userProvider.notifier).setUser(appUser);
+          Navigator.of(
+            context,
+          ).pushReplacement(MaterialPageRoute(builder: (context) => Home()));
+        }
+      }
+    } on firebase_auth.FirebaseAuthException catch (e) {
+      String message = 'Authentication failed';
+      if (e.code == 'user-not-found') {
+        message = 'No user found for that email.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Wrong password provided.';
+      } else if (e.code == 'email-already-in-use') {
+        message = 'The account already exists for that email.';
+      } else if (e.code == 'weak-password') {
+        message = 'The password provided is too weak.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An error occurred: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ModalProgressHUD(
+      inAsyncCall: _isLoading,
+      child: Scaffold(
+        appBar: AppBar(
+          systemOverlayStyle: SystemUiOverlayStyle(
+            systemNavigationBarColor: Colors.white,
+          ),
+          title: Text(
+            _isLogin ? 'Welcome Back' : 'Create Account',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontSize: 20.0),
+          ),
+          centerTitle: true,
+        ),
+        body: FadedSlideAnimation(
+          beginOffset: const Offset(0, 0.3),
+          endOffset: const Offset(0, 0),
+          slideCurve: Curves.linearToEaseOut,
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 40),
+                    CircleAvatar(
+                      radius: 150,
+                      backgroundImage: AssetImage('assets/2.png'),
+                    ),
+                    const SizedBox(height: 40),
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: primaryColor),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your email';
+                        }
+                        if (!RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(value)) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: primaryColor),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your password';
+                        }
+                        if (value.length < 6) {
+                          return 'Password must be at least 6 characters';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 30),
+                    BottomBar(
+                      color: primaryColor,
+                      textColor: kWhiteColor,
+                      onTap: _handleAuth,
+                      text: _isLogin ? "Login" : "Sign Up",
+                    ),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _isLogin = !_isLogin;
+                        });
+                      },
+                      child: Text(
+                        _isLogin
+                            ? "Don't have an account? Sign Up"
+                            : "Already have an account? Login",
+                        style: TextStyle(color: primaryColor),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    GestureDetector(
+                      onTap: () {
+                        // Navigator.push(
+                        //   context,
+                        //   MaterialPageRoute(
+                        //     builder: (context) => const SelectRegion(),
+                        //   ),
+                        // );
+                      },
+                      child: Text(
+                        'Continue as a guest',
+                        style: Theme.of(context).textTheme.headlineSmall!
+                            .copyWith(fontSize: 16.0, color: greenPrimary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
