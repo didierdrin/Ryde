@@ -251,21 +251,21 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    GestureDetector(
-                      onTap: () {
-                        // Navigator.push(
-                        //   context,
-                        //   MaterialPageRoute(
-                        //     builder: (context) => const SelectRegion(),
-                        //   ),
-                        // );
-                      },
-                      child: Text(
-                        'Continue as a guest',
-                        style: Theme.of(context).textTheme.headlineSmall!
-                            .copyWith(fontSize: 16.0, color: greenPrimary),
-                      ),
-                    ),
+                    // GestureDetector(
+                    //   onTap: () {
+                    //     // Navigator.push(
+                    //     //   context,
+                    //     //   MaterialPageRoute(
+                    //     //     builder: (context) => const SelectRegion(),
+                    //     //   ),
+                    //     // );
+                    //   },
+                    //   child: Text(
+                    //     'Continue as a guest',
+                    //     style: Theme.of(context).textTheme.headlineSmall!
+                    //         .copyWith(fontSize: 16.0, color: greenPrimary),
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

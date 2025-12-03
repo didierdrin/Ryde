@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 
-class PlatformChannelService {
-  static const platform = MethodChannel('com.ikanisa.lifuti/platform_channel');
+class PlatformChannelService { // com.ikanisa.lifuti
+  static const platform = MethodChannel('com.example.ryde_rw/platform_channel');
 
   Future<String> invokeNativeFunction() async {
     try {

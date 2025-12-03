@@ -399,7 +399,7 @@ class FindPoolState extends ConsumerState<FindPool> {
       },
       child: ModalProgressHUD(
         progressIndicator: CircularProgressIndicator(
-          color: Colors.green,
+          color: Colors.black,
         ), //greenPrimary),
         inAsyncCall: isLoading,
         child: Container(
@@ -410,7 +410,7 @@ class FindPoolState extends ConsumerState<FindPool> {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16.0, 16, 16, 0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -484,21 +484,21 @@ class FindPoolState extends ConsumerState<FindPool> {
                       ),
                       child: Text(
                         'Est. Price: ${getEstimatedPrice()} FRW (only Taxi)',
-                        style: TextStyle(fontSize: 16),
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                     ),
                   ),
-                  SizedBox(height: 40),
+                  SizedBox(height: 20),
                   BottomBar(
                       isValid: isValid(),
                       onTap: () {
                         _submitForm();
                       },
-                      text: "Find Pool",
+                      text: "Pay",
                       textColor: kWhiteColor,
                     ),
                   
-                  SizedBox(height: 8),
+                  
                 ],
               ),
             ),

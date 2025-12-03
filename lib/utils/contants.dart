@@ -55,8 +55,8 @@ class LocationPair {
 }
 
 const String playStore =
-    'https://play.google.com/store/apps/details?id=com.ikanisa.lifuti';
-const String appleStore = 'https://apps.apple.com/rw/app/rifuti/id6474266973';
+    'https://play.google.com/store/apps/details?id=com.example.ryde_rw';
+const String appleStore = 'https://apps.apple.com/rw/app/ryde/id6474266973';
 
 class LocationDD {
   final String address;

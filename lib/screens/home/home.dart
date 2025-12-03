@@ -14,6 +14,7 @@ import 'package:ryde_rw/service/request_rider_service.dart';
 import 'package:ryde_rw/service/vehicle_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
+import 'package:ryde_rw/provider/current_location_provider.dart';
 
 class Home extends ConsumerStatefulWidget {
   const Home({super.key});
@@ -178,8 +179,8 @@ class HomeConsumerState extends ConsumerState<Home> {
                     decoration: BoxDecoration(
                       color: primaryColor,
                       borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        topRight: Radius.circular(20),
+                        topLeft: Radius.circular(0),
+                        topRight: Radius.circular(0),
                       ),
                     ),
                     child: Column(
@@ -203,7 +204,7 @@ class HomeConsumerState extends ConsumerState<Home> {
                           width: double.infinity,
                           padding: EdgeInsets.all(2),
                           decoration: BoxDecoration(
-                            color: Color(0xff3FD390),
+                            color: Color(0xff000000), //Color(0xff3FD390),
                             borderRadius: BorderRadius.circular(50),
                           ),
                           child: TabBar(
@@ -216,11 +217,11 @@ class HomeConsumerState extends ConsumerState<Home> {
                             labelColor: kMainColor,
                             unselectedLabelColor: kWhiteColor,
                             tabs: [
-                              Tabcomp(icon: Icons.drive_eta, text: "Find Pool"),
+                              Tabcomp(icon: Icons.drive_eta, text: "Get a Ride"),
                               if (hasVehicle)
                                 Tabcomp(
                                   icon: Icons.escalator_warning_outlined,
-                                  text: "Offer Pool",
+                                  text: "Set a Route",
                                 ),
                             ],
                           ),
@@ -281,42 +282,52 @@ class HomeConsumerState extends ConsumerState<Home> {
     List<dynamic> passengerNearYou,
     bool hasVehicle,
   ) {
-    final location = ref.watch(locationProvider);
+    final currentLocationAsync = ref.watch(currentLocationProvider);
+    
+    return currentLocationAsync.when(
+      data: (currentLocation) {
+        Set<Marker> markers = {};
 
-    final defaultPosition = LatLng(
-      location.isEmpty ? 0.0 : location['lat'],
-      location.isEmpty ? 0.0 : location['long'],
-    );
-    final defaultZoom = location.isEmpty ? 0.0 : 14.345;
-
-    Set<Marker> markers = {};
-
-    return GoogleMap(
-      mapType: MapType.normal,
-      initialCameraPosition: CameraPosition(
-        target: defaultPosition,
-        zoom: defaultZoom,
-      ),
-      onMapCreated: (controller) async {
-        _mapController.complete(controller);
+        return GoogleMap(
+          mapType: MapType.normal,
+          initialCameraPosition: CameraPosition(
+            target: currentLocation,
+            zoom: 15.0,
+          ),
+          onMapCreated: (controller) async {
+            _mapController.complete(controller);
+          },
+          markers: markers,
+          myLocationEnabled: true,
+          myLocationButtonEnabled: true,
+          zoomControlsEnabled: true,
+          zoomGesturesEnabled: true,
+          scrollGesturesEnabled: true,
+          rotateGesturesEnabled: true,
+          tiltGesturesEnabled: true,
+          compassEnabled: true,
+          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+            Factory<PanGestureRecognizer>(() => PanGestureRecognizer()),
+            Factory<ScaleGestureRecognizer>(() => ScaleGestureRecognizer()),
+            Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
+            Factory<VerticalDragGestureRecognizer>(
+              () => VerticalDragGestureRecognizer(),
+            ),
+          },
+        );
       },
-      markers: markers,
-      myLocationEnabled: true,
-      myLocationButtonEnabled: true,
-      zoomControlsEnabled: true,
-      zoomGesturesEnabled: true,
-      scrollGesturesEnabled: true,
-      rotateGesturesEnabled: true,
-      tiltGesturesEnabled: true,
-      compassEnabled: true,
-      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-        Factory<PanGestureRecognizer>(() => PanGestureRecognizer()),
-        Factory<ScaleGestureRecognizer>(() => ScaleGestureRecognizer()),
-        Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
-        Factory<VerticalDragGestureRecognizer>(
-          () => VerticalDragGestureRecognizer(),
+      loading: () => Container(
+        color: Colors.grey[300],
+        child: Center(
+          child: CircularProgressIndicator(),
         ),
-      },
+      ),
+      error: (error, stack) => Container(
+        color: Colors.grey[300],
+        child: Center(
+          child: Text('Error loading map: $error'),
+        ),
+      ),
     );
   }
 }

@@ -102,7 +102,7 @@ class _AllBottomNavigationsScreenState extends ConsumerState<AllBottomNavigation
             print('Stack trace: $stackTrace');
           }
         },
-        selectedItemColor: Theme.of(context).primaryColor,
+        selectedItemColor: Colors.black, //Theme.of(context).primaryColor,
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(

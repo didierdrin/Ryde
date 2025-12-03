@@ -113,22 +113,29 @@ class _TripsState extends ConsumerState<Trips> with TickerProviderStateMixin {
               indicatorSize: TabBarIndicatorSize.label,
               indicatorColor: Theme.of(context).primaryColor,
               indicatorWeight: 4.0,
-              tabs: hasVehicle
-                  ? (driverHasMadeRequest
-                        ? [
-                            Tab(text: "My Trips"),
-                            Tab(text: 'NearBy Passengers'),
-                            Tab(text: 'NearBy Drivers'),
-                          ]
-                        : [
-                            Tab(text: "My Trips"),
-                            Tab(text: 'NearBy Passengers'),
-                            Tab(text: 'NearBy Drivers'),
-                          ])
-                  : [
-                      Tab(text: "My Trips"),
-                      Tab(text: 'NearBy Drivers'),
-                    ],
+              tabs: [
+                Tab(text: "My Trips"),
+                      Tab(text: 'NearBy Passengers'),
+                      // Tab(text: 'NearBy Drivers'),
+              ],
+              // tabs: hasVehicle
+              //     ? (driverHasMadeRequest
+              //           ? [
+              //               Tab(text: "My Trips"),
+              //               Tab(text: 'NearBy Passengers'),
+              //               Tab(text: 'NearBy Drivers'),
+              //             ]
+              //           : [
+              //               Tab(text: "My Trips"),
+              //               Tab(text: 'NearBy Passengers'),
+              //               Tab(text: 'NearBy Drivers'),
+              //             ])
+              //     : [
+              //         Tab(text: "My Trips"),
+              //         Tab(text: 'NearBy Passengers'),
+              //         Tab(text: 'NearBy Drivers'),
+
+              //       ],
             ),
           ),
           backgroundColor: Colors.white,
