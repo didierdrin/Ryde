@@ -10,6 +10,21 @@ class Searchdrivers extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = ref.read(locationProvider);
+    
+    // Handle null or incomplete location data
+    if (l == null || !l.containsKey('lat') || !l.containsKey('long')) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Getting your location...'),
+          ],
+        ),
+      );
+    }
+    
     final myLocation = Location.fromData(l);
     return OfferPoolListPage(
       driverStartLocation: myLocation,

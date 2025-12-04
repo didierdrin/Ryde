@@ -9,10 +9,12 @@ import '../home/searchpooler.dart';
 import 'package:ryde_rw/service/location_service.dart';
 import 'package:ryde_rw/service/offer_pool_service.dart';
 import 'package:ryde_rw/service/user_service.dart';
+import 'package:ryde_rw/service/order_service.dart';
 import 'package:ryde_rw/shared/locations_shared.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/utils.dart';
+import 'package:ryde_rw/provider/order_providers.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SearchPassengersListPage extends ConsumerWidget {
@@ -55,14 +57,20 @@ class SearchPassengersListPage extends ConsumerWidget {
         ),
       ),
     );
+    final rideOrdersStream = ref.watch(rideOrdersStreamProvider);
 
-    final isLoading = userStreams.isLoading || offerPoolStream.isLoading;
+    final isLoading = userStreams.isLoading || offerPoolStream.isLoading || rideOrdersStream.isLoading;
     if (isLoading) {
       return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final userdata = userStreams.value ?? [];
     final offerPools = offerPoolStream.value ?? [];
+    final unconfirmedOrders = rideOrdersStream.value?.where((order) => 
+      order['status'] == 'pending' && 
+      order['userId'] != user.id &&
+      order['driverId'] == null
+    ).toList() ?? [];
     // final region = ref.read(regionProvider);
     final limit = DateTime.now().subtract(Duration(hours: 5));
 
@@ -104,8 +112,97 @@ class SearchPassengersListPage extends ConsumerWidget {
               topRight: Radius.circular(20),
             ),
           ),
-          child:  offerdatasfilter.isNotEmpty
-                ? ListView.builder(
+          child: Column(
+            children: [
+              // Display unconfirmed ride orders
+              ...unconfirmedOrders.map((order) => Container(
+                width: MediaQuery.of(context).size.width,
+                margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(15),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            order['dateTime'] ?? 'No date',
+                            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () async {
+                              await OrderService().updateRideOrderStatus(
+                                order['id'],
+                                'confirmed',
+                                driverId: user.id,
+                              );
+                            },
+                            child: Text('Confirm', style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 15),
+                      Row(
+                        children: [
+                          Icon(Icons.circle, color: kMainColor, size: 15),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              order['from'] ?? 'Unknown',
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(left: 4),
+                        child: Icon(Icons.more_vert, color: kMainColor, size: 15),
+                      ),
+                      Row(
+                        children: [
+                          SizedBox(width: 2),
+                          Icon(Icons.keyboard_arrow_down, color: kMainColor, size: 20),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              order['to'] ?? 'Unknown',
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Vehicle: ${order['vehicleType'] ?? 'N/A'}',
+                            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                          ),
+                          Text(
+                            '${order['estimatedPrice'] ?? '0'} FRW',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )).toList(),
+              // Display existing offer pools
+              if (offerdatasfilter.isNotEmpty)
+                Expanded(
+                  child: ListView.builder(
                     padding: EdgeInsets.symmetric(vertical: 10),
                     itemCount: offerdatasfilter.length,
                     itemBuilder: (context, index) {
@@ -161,8 +258,12 @@ class SearchPassengersListPage extends ConsumerWidget {
                         },
                       );
                     },
-                  )
-                : Center(child: Text('No Passenger Found NearBy You!')),
+                  ),
+                )
+              else if (unconfirmedOrders.isEmpty)
+                Expanded(child: Center(child: Text('No Passenger Found NearBy You!'))),
+            ],
+          ),
           ),
         ),
       

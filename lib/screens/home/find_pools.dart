@@ -2,17 +2,17 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:ryde_rw/components/widgets/button_bar.dart';
 import 'package:ryde_rw/components/widgets/entry_field.dart';
-
 import 'package:ryde_rw/components/widgets/location_input_field.dart';
+import 'package:ryde_rw/components/widgets/dropoff_location_input_field.dart';
 import 'package:ryde_rw/models/request_model.dart';
-// import 'package:ryde_rw/screens/app_screen.dart';
-// import 'package:ryde_rw/screens/auth/login.dart';
 import 'package:ryde_rw/service/request_rider_service.dart';
+import 'package:ryde_rw/service/order_service.dart';
 import 'package:ryde_rw/shared/locations_shared.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
@@ -31,6 +31,7 @@ class FindPoolState extends ConsumerState<FindPool> {
   Location? pickup, dropOff;
   final TextEditingController dateTimeController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool isNowSelected = true;
 
   @override
   void initState() {
@@ -195,8 +196,7 @@ class FindPoolState extends ConsumerState<FindPool> {
 
     if (_formKey.currentState!.validate() && isValid()) {
       final user = ref.read(userProvider)!;
-      final dateFormat = DateFormat("yyyy-MM-dd h:mm");
-      DateTime parsedDate = dateFormat.parse(dateTimeController.text);
+      DateTime parsedDate = isNowSelected ? DateTime.now() : DateFormat("yyyy-MM-dd h:mm").parse(dateTimeController.text);
       Timestamp requestedTimestamp = Timestamp.fromDate(parsedDate);
 
       // Define the time window: one hour before and after the selected time
@@ -266,18 +266,26 @@ class FindPoolState extends ConsumerState<FindPool> {
 
       try {
         await RequestRideService.createRequestRide(requestRide);
+        
+        // Save to orders collection
+        final orderData = {
+          'userId': user.id,
+          'from': pickup!.address,
+          'to': dropOff!.address,
+          'dateTime': DateFormat('yyyy-MM-dd HH:mm').format(parsedDate),
+          'vehicleType': selectedVehicle,
+          'estimatedPrice': getEstimatedPrice(),
+          'createdAt': Timestamp.now(),
+          'status': 'pending',
+        };
+        
+        await OrderService().createRideOrder(orderData);
+        
         setState(() {
           isLoading = false;
         });
-
-        // Navigator.pushReplacement(
-        //   context,
-        //   MaterialPageRoute(
-        //     builder: (context) {
-        //       return AppScreen(currentIndex: 1);
-        //     },
-        //   ),
-        // );
+        
+        _showPaymentBottomSheet(selectedVehicle, parsedDate);
       } catch (e) {
         setState(() {
           isLoading = false;
@@ -388,7 +396,111 @@ class FindPoolState extends ConsumerState<FindPool> {
   bool isValid() {
     return pickup != null &&
         dropOff != null &&
-        dateTimeController.text.trim().isNotEmpty;
+        (isNowSelected || dateTimeController.text.trim().isNotEmpty);
+  }
+
+  void _showPaymentBottomSheet(String vehicleType, DateTime dateTime) {
+    final paymentCode = '*182*8*1*808010#';
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Trip Details',
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 20),
+              _buildDetailRow('From:', pickup!.address),
+              _buildDetailRow('To:', dropOff!.address),
+              _buildDetailRow('Date & Time:', DateFormat('yyyy-MM-dd HH:mm').format(dateTime)),
+              _buildDetailRow('Vehicle:', vehicleType),
+              _buildDetailRow('Est. Price:', '${getEstimatedPrice()} FRW'),
+              SizedBox(height: 30),
+              Text(
+                'Payment Code',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              SizedBox(height: 10),
+              Container(
+                padding: EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        paymentCode,
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: paymentCode));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Payment code copied!')),
+                        );
+                      },
+                      icon: Icon(Icons.copy),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 30),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Cancelled'),
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Done'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(
+            child: Text(value),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -433,7 +545,7 @@ class FindPoolState extends ConsumerState<FindPool> {
                       });
                     },
                   ),
-                  LocationInputField(
+                  DropoffLocationInputField(
                     destination: true,
                     location: dropOff,
                     hint: 'To',
@@ -448,25 +560,70 @@ class FindPoolState extends ConsumerState<FindPool> {
                       });
                     },
                   ),
+                  const SizedBox(height: 10,),
                   Row(
                     children: [
-                      Flexible(
-                        flex: 2,
-                        child: GestureDetector(
-                          onTap: () => _selectDateTime(context),
-                          child: AbsorbPointer(
-                            child: TextEntryField(
-                              controller: dateTimeController,
-                              hint: 'Date and time',
-                              prefixIcon: Icon(
-                                Icons.calendar_today,
-                                color: Colors.grey,
-                                size: 17,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => setState(() => isNowSelected = true),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isNowSelected ? primaryColor : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: primaryColor),
+                                ),
+                                child: Text(
+                                  'Now',
+                                  style: TextStyle(
+                                    color: isNowSelected ? Colors.white : primaryColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () => setState(() => isNowSelected = false),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: !isNowSelected ? primaryColor : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: primaryColor),
+                                ),
+                                child: Text(
+                                  'Later',
+                                  style: TextStyle(
+                                    color: !isNowSelected ? Colors.white : primaryColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (!isNowSelected)
+                        Flexible(
+                          flex: 2,
+                          child: GestureDetector(
+                            onTap: () => _selectDateTime(context),
+                            child: AbsorbPointer(
+                              child: TextEntryField(
+                                controller: dateTimeController,
+                                hint: 'Date and time',
+                                prefixIcon: Icon(
+                                  Icons.calendar_today,
+                                  color: Colors.grey,
+                                  size: 17,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                   // New widget for Est. Price:

@@ -1,7 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import '../myTrips/pool_taker_request_screen.dart';
@@ -12,24 +11,30 @@ import 'package:ryde_rw/service/user_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/utils.dart';
+import 'package:ryde_rw/provider/order_providers.dart';
+import 'package:ryde_rw/service/order_service.dart';
 
 class OfferingTab extends ConsumerWidget {
   const OfferingTab({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.read(userProvider);
     final location = ref.read(locationProvider);
     final offersStreams = ref.watch(OfferPoolService.offeringStreams);
     final requestonOfferPoolStreams = ref.watch(
       RequestRideService.allRequestRideStreamProvider,
     );
     final userStreams = ref.watch(UserService.usersStream);
+    final rideOrdersStream = ref.watch(rideOrdersStreamProvider);
     final isLoading =
         offersStreams.isLoading ||
         requestonOfferPoolStreams.isLoading ||
-        userStreams.isLoading;
+        userStreams.isLoading ||
+        rideOrdersStream.isLoading;
     final offerdatas = offersStreams.value ?? [];
     final requestonoffer = requestonOfferPoolStreams.value ?? [];
     final userdata = userStreams.value ?? [];
+    final rideOrders = rideOrdersStream.value?.where((order) => order['userId'] == user?.id).toList() ?? [];
     final limit = DateTime.now().subtract(Duration(hours: 5));
     final offerdatasfilter = offerdatas.where((offer) {
       return offer.dateTime.toDate().isAfter(limit);
@@ -47,7 +52,7 @@ class OfferingTab extends ConsumerWidget {
         ),
         child: Column(
             children: [
-              if (offerdatasfilter.isEmpty && !isLoading)
+              if (offerdatasfilter.isEmpty && rideOrders.isEmpty && !isLoading)
                 Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -69,6 +74,111 @@ class OfferingTab extends ConsumerWidget {
                     ],
                   ),
                 ),
+              // Display ride orders
+              ...rideOrders.map((order) => Container(
+                width: MediaQuery.of(context).size.width,
+                margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(15),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            order['dateTime'] ?? 'No date',
+                            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: order['status'] == 'confirmed' ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  order['status'] ?? 'pending',
+                                  style: TextStyle(
+                                    color: order['status'] == 'confirmed' ? Colors.green : Colors.orange,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ),
+                              if (order['status'] == 'confirmed' && order['driverId'] != null)
+                                SizedBox(width: 8),
+                              if (order['status'] == 'confirmed' && order['driverId'] != null)
+                                ElevatedButton(
+                                  onPressed: () async {
+                                    await ref.read(orderServiceProvider).updateRideOrderStatus(
+                                      order['id'],
+                                      'passenger_confirmed',
+                                    );
+                                  },
+                                  child: Text('Accept', style: TextStyle(fontSize: 10)),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 15),
+                      Row(
+                        children: [
+                          Icon(Icons.circle, color: kMainColor, size: 15),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              order['from'] ?? 'Unknown',
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(left: 4),
+                        child: Icon(Icons.more_vert, color: kMainColor, size: 15),
+                      ),
+                      Row(
+                        children: [
+                          SizedBox(width: 2),
+                          Icon(Icons.keyboard_arrow_down, color: kMainColor, size: 20),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              order['to'] ?? 'Unknown',
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Vehicle: ${order['vehicleType'] ?? 'N/A'}',
+                            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                          ),
+                          Text(
+                            '${order['estimatedPrice'] ?? '0'} FRW',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )).toList(),
               Expanded(
                 child: ListView.builder(
                   shrinkWrap: true,

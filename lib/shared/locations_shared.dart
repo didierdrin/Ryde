@@ -30,9 +30,9 @@ class Location {
 
   factory Location.fromData(Map<String, dynamic> map) {
     return Location(
-      address: map['address'],
-      latitude: map['lat'],
-      longitude: map['long'],
+      address: map['address'] ?? 'Unknown Location',
+      latitude: (map['lat'] ?? 0.0).toDouble(),
+      longitude: (map['long'] ?? 0.0).toDouble(),
     );
   }
 

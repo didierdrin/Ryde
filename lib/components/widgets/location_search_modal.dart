@@ -15,6 +15,8 @@ import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/contants.dart';
 import 'package:ryde_rw/utils/utils.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:ryde_rw/provider/current_location_provider.dart';
+import 'package:geolocator/geolocator.dart';
 
 class LocationSearchModal extends ConsumerStatefulWidget {
   final bool destination;
@@ -49,17 +51,6 @@ class LocationSearchModalState extends ConsumerState<LocationSearchModal> {
     if (widget.location != null) {
       location = widget.location;
       searchController.text = widget.location?.address ?? '';
-    } else {
-      final myLocation = ref.read(locationProvider);
-      if (myLocation.containsKey('lat') && myLocation.containsKey('long')) {
-        preventOnCameraIdle = true;
-        selectedLocation = LatLng(myLocation['lat'], myLocation['long']);
-        Future.delayed(const Duration(seconds: 1)).then((_) {
-          setState(() {
-            preventOnCameraIdle = false;
-          });
-        });
-      }
     }
   }
 
@@ -110,6 +101,7 @@ class LocationSearchModalState extends ConsumerState<LocationSearchModal> {
     final user = ref.read(userProvider);
     // final region = ref.watch(regionProvider);
     final code = user?.countryCode ?? "+250";
+    print('User country code: $code');
     Map<String, Address> addresses = {};
     if (user != null) {
       final addressesStream = ref.watch(addressesProvider(user.phoneNumber));
@@ -143,6 +135,24 @@ class LocationSearchModalState extends ConsumerState<LocationSearchModal> {
                 return TextField(
                   controller: controller,
                   focusNode: focusNode,
+                  onSubmitted: (value) {
+                    if (value.trim().isNotEmpty) {
+                      setState(() {
+                        address = value.trim();
+                        location = Location(
+                          address: value.trim(),
+                          latitude: -1.9441,
+                          longitude: 30.0619,
+                        );
+                        selectedLocation = LatLng(-1.9441, 30.0619);
+                      });
+                      if (mapController != null) {
+                        mapController!.animateCamera(
+                          CameraUpdate.newLatLngZoom(LatLng(-1.9441, 30.0619), 15),
+                        );
+                      }
+                    }
+                  },
                   decoration: InputDecoration(
                     filled: true,
                     isDense: false,
@@ -172,7 +182,21 @@ class LocationSearchModalState extends ConsumerState<LocationSearchModal> {
               },
               suggestionsCallback: (pattern) async {
                 if (pattern.length < 2) return [];
-                return await PlaceServices.placeSuggestions(code, pattern);
+                try {
+                  // Convert phone code to country code
+                  String countryCode = 'RW'; // Default to Rwanda
+                  if (code == '+250') countryCode = 'RW';
+                  else if (code == '+1') countryCode = 'US';
+                  else if (code == '+44') countryCode = 'GB';
+                  else if (code == '+33') countryCode = 'FR';
+                  
+                  final results = await PlaceServices.placeSuggestions(countryCode, pattern);
+                  print('Search results for "$pattern": ${results.length} found');
+                  return results;
+                } catch (e) {
+                  print('Error in placeSuggestions: $e');
+                  return [];
+                }
               },
               itemBuilder: (context, suggestion) {
                 final data = suggestion as Map<String, dynamic>;
@@ -225,58 +249,78 @@ class LocationSearchModalState extends ConsumerState<LocationSearchModal> {
             height: MediaQuery.sizeOf(context).height * 0.35,
             child: Stack(
               children: [
-                GoogleMap(
-                  mapType: MapType.normal,
-                  initialCameraPosition: CameraPosition(
-                    target:
-                        location?.latLng() ??
-                        selectedLocation ??
-                        const LatLng(0.0, 0.0),
-                    zoom: 15,
-                  ),
-                  onMapCreated: (GoogleMapController controller) {
-                    mapController = controller;
-                    if (location != null) {
-                      controller.animateCamera(
-                        CameraUpdate.newLatLngZoom(location!.latLng(), 15),
-                      );
-                    }
-                  },
-                  onCameraMove: (position) {
-                    setState(() {
-                      selectedLocation = position.target;
-                    });
-                  },
-                  onCameraIdle: () async {
-                    if (preventOnCameraIdle) return;
-                    if (selectedLocation != null) {
-                      final placeId =
-                          await PlaceServices.placeIdFromNearbySearch(
-                            selectedLocation!.latitude,
-                            selectedLocation!.longitude,
-                          );
-                      await setLocationFromSearch(placeId, noMove: true);
-                    }
-                  },
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
-                  zoomControlsEnabled: true,
-                  zoomGesturesEnabled: true,
-                  scrollGesturesEnabled: true,
-                  rotateGesturesEnabled: true,
-                  tiltGesturesEnabled: true,
-                  compassEnabled: true,
-                  gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-                    Factory<PanGestureRecognizer>(() => PanGestureRecognizer()),
-                    Factory<ScaleGestureRecognizer>(
-                      () => ScaleGestureRecognizer(),
-                    ),
-                    Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
-                    Factory<VerticalDragGestureRecognizer>(
-                      () => VerticalDragGestureRecognizer(),
-                    ),
+                Consumer(
+                  builder: (context, ref, child) {
+                    final currentLocationAsync = ref.watch(currentLocationProvider);
+                    
+                    return currentLocationAsync.when(
+                      data: (currentLocation) {
+                        return GoogleMap(
+                          mapType: MapType.normal,
+                          initialCameraPosition: CameraPosition(
+                            target: location?.latLng() ?? currentLocation,
+                            zoom: 15,
+                          ),
+                          onMapCreated: (GoogleMapController controller) {
+                            mapController = controller;
+                            if (location != null) {
+                              controller.animateCamera(
+                                CameraUpdate.newLatLngZoom(location!.latLng(), 15),
+                              );
+                            }
+                          },
+                          onCameraMove: (position) {
+                            setState(() {
+                              selectedLocation = position.target;
+                            });
+                          },
+                          onCameraIdle: () async {
+                            if (preventOnCameraIdle) return;
+                            if (selectedLocation != null) {
+                              final placeId =
+                                  await PlaceServices.placeIdFromNearbySearch(
+                                    selectedLocation!.latitude,
+                                    selectedLocation!.longitude,
+                                  );
+                              await setLocationFromSearch(placeId, noMove: true);
+                            }
+                          },
+                          myLocationEnabled: true,
+                          myLocationButtonEnabled: true,
+                          zoomControlsEnabled: true,
+                          zoomGesturesEnabled: true,
+                          scrollGesturesEnabled: true,
+                          rotateGesturesEnabled: true,
+                          tiltGesturesEnabled: true,
+                          compassEnabled: true,
+                          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                            Factory<PanGestureRecognizer>(() => PanGestureRecognizer()),
+                            Factory<ScaleGestureRecognizer>(
+                              () => ScaleGestureRecognizer(),
+                            ),
+                            Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
+                            Factory<VerticalDragGestureRecognizer>(
+                              () => VerticalDragGestureRecognizer(),
+                            ),
+                          },
+                        );
+                      },
+                      loading: () => Container(
+                        color: Colors.grey[300],
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                      error: (error, stack) => Container(
+                        color: Colors.grey[300],
+                        child: Center(
+                          child: Text('Error loading map: $error'),
+                        ),
+                      ),
+                    );
                   },
                 ),
+
                 Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -307,35 +351,27 @@ class LocationSearchModalState extends ConsumerState<LocationSearchModal> {
                           ),
                         ),
                     const SizedBox(height: 16),
-                    if (location != null)
-                      GestureDetector(
-                        onTap: () {
-                          widget.onLocationSelected(location!);
-                          if (Navigator.of(context).canPop()) {
-                            Navigator.pop(context);
-                          }
-                        },
-                        child: const ColorButton('Confirm address'),
-                      ),
                     if (widget.useCurrent) ...[
                       const SizedBox(height: 30),
                       GestureDetector(
                         onTap: () async {
-                          final myLocation = ref.read(locationProvider);
-                          if (myLocation.containsKey('lat') &&
-                              myLocation.containsKey('long')) {
-                            final addressName =
-                                myLocation['address'] ?? 'Current Location';
-
+                          try {
+                            final position = await Geolocator.getCurrentPosition(
+                              desiredAccuracy: LocationAccuracy.high,
+                            );
                             final currentLocation = Location(
-                              address: addressName,
-                              latitude: myLocation['lat'],
-                              longitude: myLocation['long'],
+                              address: 'Current Location',
+                              latitude: position.latitude,
+                              longitude: position.longitude,
                             );
                             widget.onLocationSelected(currentLocation);
                             if (Navigator.of(context).canPop()) {
                               Navigator.pop(context);
                             }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error getting current location: $e')),
+                            );
                           }
                         },
                         child: const ColorButton('Use Current Location'),
@@ -421,6 +457,34 @@ class LocationSearchModalState extends ConsumerState<LocationSearchModal> {
               ),
             ),
           ),
+          if (widget.destination && (location != null || address != null))
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.3),
+                    spreadRadius: 1,
+                    blurRadius: 5,
+                    offset: Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: GestureDetector(
+                  onTap: () {
+                    if (location != null) {
+                      widget.onLocationSelected(location!);
+                      if (Navigator.of(context).canPop()) {
+                        Navigator.pop(context);
+                      }
+                    }
+                  },
+                  child: const ColorButton('Confirm Drop-off Location'),
+                ),
+              ),
+            ),
         ],
       ),
     );

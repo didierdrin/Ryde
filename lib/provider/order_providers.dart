@@ -20,3 +20,9 @@ final orderStreamProvider = StreamProvider.family<UserOrder?, String>((
   return orderService.getOrderStreamById(orderId);
 });
 
+// StreamProvider for ride orders
+final rideOrdersStreamProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  final orderService = ref.watch(orderServiceProvider);
+  return orderService.getRideOrdersStream();
+});
+

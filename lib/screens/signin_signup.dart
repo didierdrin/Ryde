@@ -139,22 +139,16 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
 
   @override
   Widget build(BuildContext context) {
-    return ModalProgressHUD(
-      inAsyncCall: _isLoading,
-      child: Scaffold(
-        appBar: AppBar(
-          systemOverlayStyle: SystemUiOverlayStyle(
-            systemNavigationBarColor: Colors.white,
-          ),
-          title: Text(
-            _isLogin ? 'Welcome Back' : 'Create Account',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontSize: 20.0),
-          ),
-          centerTitle: true,
-        ),
-        body: SingleChildScrollView(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.white,
+      ),
+      child: ModalProgressHUD(
+        inAsyncCall: _isLoading,
+        child: Scaffold(
+          body: SingleChildScrollView(
           scrollDirection: Axis.vertical,
             child: Padding(
               padding: const EdgeInsets.all(20.0),
@@ -162,7 +156,16 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    const SizedBox(height: 40),
+                    SizedBox(height: 40,),
+                    Center(
+                      child: Text(
+                                  _isLogin ? 'Welcome Back' : 'Create Account',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.headlineMedium?.copyWith(fontSize: 20.0),
+                                ),
+                    ),
+                    const SizedBox(height: 30),
                     CircleAvatar(
                       radius: 150,
                       backgroundImage: AssetImage('assets/2.png'),
@@ -271,6 +274,7 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
               ),
             ),
           ),
+        ),
       ),
     );
   }

@@ -19,19 +19,30 @@ class PlaceServices {
       final serviceUrl = '$baseUrl/place/autocomplete/json';
       final urlQueries = 'key=$apiKey&input=$input&components=country:$code';
       final url = '$serviceUrl?$urlQueries';
+      print('Places API URL: $url');
+      
       final http.Response response = await http.get(Uri.parse(url));
+      print('Places API Response Status: ${response.statusCode}');
+      
       if (response.statusCode == 200) {
         final data = await json.decode(response.body);
-        final List<dynamic> suggestions = data['predictions'];
-        return suggestions.map((suggestion) {
-          final placeId = suggestion['place_id'] as String;
-          final formattedName = suggestion['structured_formatting'];
-          final description = formattedName['main_text'] as String;
-          return {'description': description, 'place_id': placeId};
-        }).toList();
+        print('Places API Response: $data');
+        
+        if (data['status'] == 'OK') {
+          final List<dynamic> suggestions = data['predictions'] ?? [];
+          return suggestions.map((suggestion) {
+            final placeId = suggestion['place_id'] as String;
+            final description = suggestion['description'] as String;
+            return {'description': description, 'place_id': placeId};
+          }).toList();
+        } else {
+          print('Places API Error: ${data['status']} - ${data['error_message'] ?? 'Unknown error'}');
+        }
+      } else {
+        print('HTTP Error: ${response.statusCode} - ${response.body}');
       }
-    } catch (_) {
-      return [];
+    } catch (e) {
+      print('Exception in placeSuggestions: $e');
     }
     return [];
   }
