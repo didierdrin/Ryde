@@ -12,7 +12,7 @@ import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/utils.dart';
 import 'package:ryde_rw/provider/order_providers.dart';
-import 'package:ryde_rw/service/order_service.dart';
+import 'package:ryde_rw/models/ride_order.dart';
 
 class OfferingTab extends ConsumerWidget {
   const OfferingTab({super.key});
@@ -26,15 +26,18 @@ class OfferingTab extends ConsumerWidget {
     );
     final userStreams = ref.watch(UserService.usersStream);
     final rideOrdersStream = ref.watch(rideOrdersStreamProvider);
+    final requestRidesStream = ref.watch(requestRidesStreamProvider);
     final isLoading =
         offersStreams.isLoading ||
         requestonOfferPoolStreams.isLoading ||
         userStreams.isLoading ||
-        rideOrdersStream.isLoading;
+        rideOrdersStream.isLoading ||
+        requestRidesStream.isLoading;
     final offerdatas = offersStreams.value ?? [];
     final requestonoffer = requestonOfferPoolStreams.value ?? [];
     final userdata = userStreams.value ?? [];
-    final rideOrders = rideOrdersStream.value?.where((order) => order['userId'] == user?.id).toList() ?? [];
+    final rideOrders = rideOrdersStream.value ?? [];
+    final requestRides = requestRidesStream.value ?? [];
     final limit = DateTime.now().subtract(Duration(hours: 5));
     final offerdatasfilter = offerdatas.where((offer) {
       return offer.dateTime.toDate().isAfter(limit);
@@ -52,7 +55,7 @@ class OfferingTab extends ConsumerWidget {
         ),
         child: Column(
             children: [
-              if (offerdatasfilter.isEmpty && rideOrders.isEmpty && !isLoading)
+              if (offerdatasfilter.isEmpty && rideOrders.isEmpty && requestRides.isEmpty && !isLoading)
                 Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -74,7 +77,7 @@ class OfferingTab extends ConsumerWidget {
                     ],
                   ),
                 ),
-              // Display ride orders
+              // Display ride orders from Firebase
               ...rideOrders.map((order) => Container(
                 width: MediaQuery.of(context).size.width,
                 margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -91,41 +94,28 @@ class OfferingTab extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            order['dateTime'] ?? 'No date',
+                            order.dateTime,
                             style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                               fontSize: 13.5,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: order['status'] == 'confirmed' ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  order['status'] ?? 'pending',
-                                  style: TextStyle(
-                                    color: order['status'] == 'confirmed' ? Colors.green : Colors.orange,
-                                    fontSize: 10,
-                                  ),
-                                ),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: order.status == 'completed' ? Colors.green.withOpacity(0.1) : 
+                                    order.status == 'cancelled' ? Colors.red.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              order.status.toUpperCase(),
+                              style: TextStyle(
+                                color: order.status == 'completed' ? Colors.green : 
+                                      order.status == 'cancelled' ? Colors.red : Colors.orange,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
                               ),
-                              if (order['status'] == 'confirmed' && order['driverId'] != null)
-                                SizedBox(width: 8),
-                              if (order['status'] == 'confirmed' && order['driverId'] != null)
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    await ref.read(orderServiceProvider).updateRideOrderStatus(
-                                      order['id'],
-                                      'passenger_confirmed',
-                                    );
-                                  },
-                                  child: Text('Accept', style: TextStyle(fontSize: 10)),
-                                ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
@@ -136,7 +126,7 @@ class OfferingTab extends ConsumerWidget {
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              order['from'] ?? 'Unknown',
+                              order.from,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontSize: 12),
                             ),
@@ -154,7 +144,7 @@ class OfferingTab extends ConsumerWidget {
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              order['to'] ?? 'Unknown',
+                              order.to,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontSize: 12),
                             ),
@@ -166,11 +156,11 @@ class OfferingTab extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Vehicle: ${order['vehicleType'] ?? 'N/A'}',
+                            'Vehicle: ${order.vehicleType}',
                             style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                           ),
                           Text(
-                            '${order['estimatedPrice'] ?? '0'} FRW',
+                            '${order.estimatedPrice} FRW',
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                         ],

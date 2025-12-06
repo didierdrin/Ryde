@@ -1,6 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ryde_rw/models/orders.dart';
+import 'package:ryde_rw/models/request_model.dart';
+import 'package:ryde_rw/models/ride_order.dart';
 import 'package:ryde_rw/service/order_service.dart';
+import 'package:ryde_rw/service/request_rider_service.dart';
+import 'package:ryde_rw/shared/shared_states.dart';
 
 // Instantiate the OrderService
 final orderServiceProvider = Provider((ref) => OrderService());
@@ -20,9 +24,26 @@ final orderStreamProvider = StreamProvider.family<UserOrder?, String>((
   return orderService.getOrderStreamById(orderId);
 });
 
-// StreamProvider for ride orders
-final rideOrdersStreamProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+// StreamProvider for ride orders from Firebase
+final rideOrdersStreamProvider = StreamProvider<List<RideOrder>>((ref) {
+  final user = ref.read(userProvider);
+  if (user == null) return Stream.value([]);
+  
   final orderService = ref.watch(orderServiceProvider);
-  return orderService.getRideOrdersStream();
+  return orderService.getRideOrdersStreamByUser(user.id);
+});
+
+// StreamProvider for request rides - keeping the original functionality
+final requestRidesStreamProvider = StreamProvider<List<RequestRide>>((ref) {
+  final user = ref.read(userProvider);
+  if (user == null) return Stream.value([]);
+  
+  return ref.watch(RequestRideService.allRequestRideStreamProvider).when(
+    data: (requests) => Stream.value(
+      requests.where((request) => request.requestedBy == user.id).toList()
+    ),
+    loading: () => Stream.value([]),
+    error: (_, __) => Stream.value([]),
+  );
 });
 

@@ -57,19 +57,19 @@ class SearchPassengersListPage extends ConsumerWidget {
         ),
       ),
     );
-    final rideOrdersStream = ref.watch(rideOrdersStreamProvider);
+    final requestRidesStream = ref.watch(requestRidesStreamProvider);
 
-    final isLoading = userStreams.isLoading || offerPoolStream.isLoading || rideOrdersStream.isLoading;
+    final isLoading = userStreams.isLoading || offerPoolStream.isLoading || requestRidesStream.isLoading;
     if (isLoading) {
       return Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final userdata = userStreams.value ?? [];
     final offerPools = offerPoolStream.value ?? [];
-    final unconfirmedOrders = rideOrdersStream.value?.where((order) => 
-      order['status'] == 'pending' && 
-      order['userId'] != user.id &&
-      order['driverId'] == null
+    final unconfirmedRequests = requestRidesStream.value?.where((request) => 
+      !request.accepted && !request.rejected && !request.cancelled &&
+      request.requestedBy != user.id &&
+      (request.rider == null || request.rider!.isEmpty)
     ).toList() ?? [];
     // final region = ref.read(regionProvider);
     final limit = DateTime.now().subtract(Duration(hours: 5));
@@ -114,8 +114,8 @@ class SearchPassengersListPage extends ConsumerWidget {
           ),
           child: Column(
             children: [
-              // Display unconfirmed ride orders
-              ...unconfirmedOrders.map((order) => Container(
+              // Display unconfirmed ride requests
+              ...unconfirmedRequests.map((request) => Container(
                 width: MediaQuery.of(context).size.width,
                 margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
@@ -131,7 +131,7 @@ class SearchPassengersListPage extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            order['dateTime'] ?? 'No date',
+                            formatTime(request.requestedTime),
                             style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                               fontSize: 13.5,
                               fontWeight: FontWeight.bold,
@@ -139,13 +139,12 @@ class SearchPassengersListPage extends ConsumerWidget {
                           ),
                           ElevatedButton(
                             onPressed: () async {
-                              await OrderService().updateRideOrderStatus(
-                                order['id'],
-                                'confirmed',
-                                driverId: user.id,
+                              await OfferPoolService.acceptRideRequest(
+                                request.id!,
+                                user.id,
                               );
                             },
-                            child: Text('Confirm', style: TextStyle(fontSize: 12)),
+                            child: Text('Accept', style: TextStyle(fontSize: 12)),
                           ),
                         ],
                       ),
@@ -156,7 +155,7 @@ class SearchPassengersListPage extends ConsumerWidget {
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              order['from'] ?? 'Unknown',
+                              request.pickupLocation.address,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontSize: 12),
                             ),
@@ -174,7 +173,7 @@ class SearchPassengersListPage extends ConsumerWidget {
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              order['to'] ?? 'Unknown',
+                              request.dropoffLocation.address,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontSize: 12),
                             ),
@@ -186,11 +185,11 @@ class SearchPassengersListPage extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Vehicle: ${order['vehicleType'] ?? 'N/A'}',
+                            'Type: ${request.type}',
                             style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                           ),
                           Text(
-                            '${order['estimatedPrice'] ?? '0'} FRW',
+                            '${request.price ?? 0} FRW',
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -260,7 +259,7 @@ class SearchPassengersListPage extends ConsumerWidget {
                     },
                   ),
                 )
-              else if (unconfirmedOrders.isEmpty)
+              else if (unconfirmedRequests.isEmpty)
                 Expanded(child: Center(child: Text('No Passenger Found NearBy You!'))),
             ],
           ),

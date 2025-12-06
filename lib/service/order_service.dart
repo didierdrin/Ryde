@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ryde_rw/models/orders.dart';
+import 'package:ryde_rw/models/ride_order.dart';
 
 class OrderService {
   final CollectionReference ordersCollection = FirebaseFirestore.instance
@@ -32,13 +33,15 @@ class OrderService {
     await rideOrdersCollection.add(orderData);
   }
 
-  // Stream to get ride orders
-  Stream<List<Map<String, dynamic>>> getRideOrdersStream() {
-    return rideOrdersCollection.snapshots().map((snapshot) {
+  // Stream to get ride orders for a specific user
+  Stream<List<RideOrder>> getRideOrdersStreamByUser(String userId) {
+    return rideOrdersCollection
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
       return snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id;
-        return data;
+        return RideOrder.fromMap(doc.data() as Map<String, dynamic>, docId: doc.id);
       }).toList();
     });
   }
