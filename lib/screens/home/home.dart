@@ -149,12 +149,12 @@ class HomeConsumerState extends ConsumerState<Home> {
               ),
             ],
           ),
-        // endDrawer: Notifications(
-        //   onDelete: () async {
-        //     Navigator.pop(context);
-        //     await NotificationService.deleteAllNotifications(notifications);
-        //   },
-        // ),
+        endDrawer: Notifications(
+          onDelete: () async {
+            Navigator.pop(context);
+            await NotificationService.deleteAllNotifications(notifications);
+          },
+        ),
         onEndDrawerChanged: (isOpened) async {
           if (!isOpened) {
             final ids = notifications

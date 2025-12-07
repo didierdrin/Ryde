@@ -73,6 +73,7 @@ dependencies:
   flutter_svg: ^2.2.3
   iconify_design: ^1.0.1
   new_version_plus: ^0.1.1
+  timeago: ^3.7.1
 
 dev_dependencies:
   flutter_test:
