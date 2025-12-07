@@ -1,56 +1,29 @@
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
-import 'package:ryde_rw/components/widgets/pooler_widget.dart';
-import '../home/passenger_info.dart';
-import '../home/searchpooler.dart';
-import 'package:ryde_rw/service/location_service.dart';
 import 'package:ryde_rw/service/offer_pool_service.dart';
 import 'package:ryde_rw/service/user_service.dart';
-import 'package:ryde_rw/service/order_service.dart';
-import 'package:ryde_rw/shared/locations_shared.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/utils.dart';
 import 'package:ryde_rw/provider/order_providers.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:ryde_rw/provider/current_location_provider.dart';
 
 class SearchPassengersListPage extends ConsumerWidget {
-  final Location? driverStartLocation;
-  final Location? driverEndLocation;
   final String? type;
 
   const SearchPassengersListPage({
     super.key,
-    this.driverStartLocation,
-    this.driverEndLocation,
     this.type,
   });
 
-  void _launchGoogleMaps({required List<Location> waypoints}) async {
-    final waypointsQuery = waypoints
-        .map((loc) => '${loc.latitude},${loc.longitude}')
-        .join('/');
-
-    final googleMapsUrl =
-        "https://www.google.com/maps/dir/$waypointsQuery?origin=&travelmode=driving&dir_action=navigate";
-
-    final url = Uri.parse(googleMapsUrl);
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l = ref.watch(locationProvider);
-    final myLocation = Location.fromData(l);
     final user = ref.watch(userProvider)!;
     final userStreams = ref.watch(UserService.usersStream);
     final rideOrdersStream = ref.watch(rideOrdersStreamProvider);
     final requestRidesStream = ref.watch(requestRidesStreamProvider);
+    final locationAsync = ref.watch(currentLocationProvider);
 
     final isLoading = userStreams.isLoading || rideOrdersStream.isLoading || requestRidesStream.isLoading;
 

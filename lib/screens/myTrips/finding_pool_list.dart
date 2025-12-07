@@ -95,7 +95,7 @@ class FindingTabState extends ConsumerState<FindingTab> {
       inAsyncCall: isLoading,
       child: Container(
         decoration: BoxDecoration(
-          color: backgroundColor,
+          color: Colors.white, //backgroundColor,
           borderRadius: BorderRadius.circular(15),
         ),
         child: Column(
