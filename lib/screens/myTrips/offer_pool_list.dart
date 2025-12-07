@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
+import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
@@ -19,6 +20,11 @@ class OfferingTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.read(userProvider);
+    final currentUserEmail = auth.FirebaseAuth.instance.currentUser?.email;
+    print('=== OFFER_POOL_LIST DEBUG ===');
+    print('User: ${user?.id}');
+    print('Current User Email: $currentUserEmail');
+    
     final location = ref.read(locationProvider);
     final offersStreams = ref.watch(OfferPoolService.offeringStreams);
     final requestonOfferPoolStreams = ref.watch(
@@ -27,6 +33,11 @@ class OfferingTab extends ConsumerWidget {
     final userStreams = ref.watch(UserService.usersStream);
     final rideOrdersStream = ref.watch(rideOrdersStreamProvider);
     final requestRidesStream = ref.watch(requestRidesStreamProvider);
+    
+    print('RideOrders Stream - Loading: ${rideOrdersStream.isLoading}, HasError: ${rideOrdersStream.hasError}');
+    print('RequestRides Stream - Loading: ${requestRidesStream.isLoading}, HasError: ${requestRidesStream.hasError}');
+    if (rideOrdersStream.hasError) print('RideOrders Error: ${rideOrdersStream.error}');
+    if (requestRidesStream.hasError) print('RequestRides Error: ${requestRidesStream.error}');
     final isLoading =
         offersStreams.isLoading ||
         requestonOfferPoolStreams.isLoading ||
@@ -38,6 +49,16 @@ class OfferingTab extends ConsumerWidget {
     final userdata = userStreams.value ?? [];
     final rideOrders = rideOrdersStream.value ?? [];
     final requestRides = requestRidesStream.value ?? [];
+    
+    print('RideOrders Count: ${rideOrders.length}');
+    print('RequestRides Count: ${requestRides.length}');
+    if (rideOrders.isNotEmpty) {
+      print('First RideOrder: ${rideOrders.first.id}, userId: ${rideOrders.first.userId}');
+    }
+    if (requestRides.isNotEmpty) {
+      print('First RequestRide: ${requestRides.first.id}, requestedBy: ${requestRides.first.requestedBy}');
+    }
+    print('=== END DEBUG ===');
     final limit = DateTime.now().subtract(Duration(hours: 5));
     final offerdatasfilter = offerdatas.where((offer) {
       return offer.dateTime.toDate().isAfter(limit);

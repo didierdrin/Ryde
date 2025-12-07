@@ -13,8 +13,8 @@ import 'package:ryde_rw/service/user_service.dart';
 import 'package:ryde_rw/service/vehicle_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
-
 import 'package:ryde_rw/utils/utils.dart';
+import 'package:ryde_rw/provider/order_providers.dart';
 import 'package:collection/collection.dart';
 
 class FindingTab extends ConsumerStatefulWidget {
@@ -29,16 +29,31 @@ class FindingTabState extends ConsumerState<FindingTab> {
 
   @override
   Widget build(BuildContext context) {
-    final location = ref.read(locationProvider);
+    final location = ref.watch(locationProvider);
     final findingdataStreams = ref.watch(FindPoolService.findingStreams);
     final findingpoolallStreams = ref.watch(FindPoolService.findingStreamsall);
     final userStreams = ref.watch(UserService.usersStream);
-    final user = ref.watch(userProvider)!;
+    final user = ref.watch(userProvider);
+    
+    // Return loading if user is not available
+    if (user == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading user data...'),
+          ],
+        ),
+      );
+    }
     final vehicleAsyncValue = ref.watch(VehicleService.vehicleStream(user.id));
     final offersStreams = ref.watch(OfferPoolService.offeringStreams);
     final requestStreams = ref.watch(
       RequestRideService.allRequestRideStreamProvider,
     );
+    final rideOrdersStream = ref.watch(rideOrdersStreamProvider);
     final allOfferPoolStreams = ref.watch(OfferPoolService.offeringStreamsAll);
     final locationFoundStreams = ref.watch(
       OfferPoolService.allofferPoolStreamProvider,
@@ -52,17 +67,28 @@ class FindingTabState extends ConsumerState<FindingTab> {
         vehicleAsyncValue.isLoading ||
         offersStreams.isLoading ||
         locationFoundStreams.isLoading ||
-        allOfferPoolStreams.isLoading;
+        allOfferPoolStreams.isLoading ||
+        rideOrdersStream.isLoading;
     final userdata = userStreams.value ?? [];
     final requested = requestStreams.value ?? [];
+    final rideOrders = rideOrdersStream.value ?? [];
     final limit = DateTime.now().subtract(Duration(hours: 5));
     final locationfoundValue = locationFoundStreams.value ?? [];
+    
     final requestUser = requested.where((el) {
-      return el.requestedBy == user.id &&
-          el.requestedTime.toDate().isAfter(limit);
+      return el.requestedBy == user.id;
     }).toList();
+    
+    final userRideOrders = rideOrders.where((order) {
+      return order.userId == user.id;
+    }).toList();
+    
     requestUser.sort(
       (a, b) => b.requestedTime.toDate().compareTo(a.requestedTime.toDate()),
+    );
+    
+    userRideOrders.sort(
+      (a, b) => b.createdAt.toDate().compareTo(a.createdAt.toDate()),
     );
 
     return ModalProgressHUD(
@@ -76,7 +102,7 @@ class FindingTabState extends ConsumerState<FindingTab> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (requestUser.isEmpty && !isLoading)
+              if (requestUser.isEmpty && userRideOrders.isEmpty && !isLoading)
                 Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -98,6 +124,99 @@ class FindingTabState extends ConsumerState<FindingTab> {
                     ],
                   ),
                 ),
+              // Display ride orders from Firebase
+              ...userRideOrders.map((order) => Container(
+                width: MediaQuery.of(context).size.width,
+                margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(15),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            order.dateTime,
+                            style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: order.status == 'completed' ? Colors.green.withOpacity(0.1) : 
+                                    order.status == 'cancelled' ? Colors.red.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              order.status.toUpperCase(),
+                              style: TextStyle(
+                                color: order.status == 'completed' ? Colors.green : 
+                                      order.status == 'cancelled' ? Colors.red : Colors.orange,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 15),
+                      Row(
+                        children: [
+                          Icon(Icons.circle, color: kMainColor, size: 15),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              order.from,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(left: 4),
+                        child: Icon(Icons.more_vert, color: kMainColor, size: 15),
+                      ),
+                      Row(
+                        children: [
+                          SizedBox(width: 2),
+                          Icon(Icons.keyboard_arrow_down, color: kMainColor, size: 20),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              order.to,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyLarge!.copyWith(fontSize: 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Vehicle: ${order.vehicleType}',
+                            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                          ),
+                          Text(
+                            '${order.estimatedPrice} FRW',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )).toList(),
+              // Display request rides
               Expanded(
                 child: ListView.builder(
                   shrinkWrap: true,

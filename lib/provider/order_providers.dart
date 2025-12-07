@@ -25,25 +25,50 @@ final orderStreamProvider = StreamProvider.family<UserOrder?, String>((
 });
 
 // StreamProvider for ride orders from Firebase
-final rideOrdersStreamProvider = StreamProvider<List<RideOrder>>((ref) {
-  final user = ref.read(userProvider);
-  if (user == null) return Stream.value([]);
+final rideOrdersStreamProvider = StreamProvider<List<RideOrder>>((ref) async* {
+  final user = ref.watch(userProvider);
+  print('=== RIDE_ORDERS_PROVIDER DEBUG ===');
+  print('User from provider: ${user?.id}');
+  
+  if (user == null) {
+    print('User is null, yielding empty list');
+    yield [];
+    return;
+  }
   
   final orderService = ref.watch(orderServiceProvider);
-  return orderService.getRideOrdersStreamByUser(user.id);
+  await for (final orders in orderService.getRideOrdersStreamByUserId(user.id)) {
+    print('Provider received ${orders.length} orders');
+    yield orders;
+  }
 });
 
-// StreamProvider for request rides - keeping the original functionality
+// StreamProvider for request rides filtered by current user's ID (phone number)
 final requestRidesStreamProvider = StreamProvider<List<RequestRide>>((ref) {
-  final user = ref.read(userProvider);
-  if (user == null) return Stream.value([]);
+  final user = ref.watch(userProvider);
+  print('=== REQUEST_RIDES_PROVIDER DEBUG ===');
+  print('Filtering requestRiders by userId: ${user?.id}');
+  
+  if (user == null) {
+    print('No user, returning empty stream');
+    return Stream.value([]);
+  }
   
   return ref.watch(RequestRideService.allRequestRideStreamProvider).when(
-    data: (requests) => Stream.value(
-      requests.where((request) => request.requestedBy == user.id).toList()
-    ),
-    loading: () => Stream.value([]),
-    error: (_, __) => Stream.value([]),
+    data: (requests) {
+      print('Total requests from Firebase: ${requests.length}');
+      final filtered = requests.where((request) => request.requestedBy == user.id).toList();
+      print('Filtered requests for user: ${filtered.length}');
+      return Stream.value(filtered);
+    },
+    loading: () {
+      print('Loading requests...');
+      return Stream.value([]);
+    },
+    error: (err, stack) {
+      print('Error loading requests: $err');
+      return Stream.value([]);
+    },
   );
 });
 

@@ -23,7 +23,7 @@ class BottomBar extends StatelessWidget {
       onTap: isValid ? onTap as void Function()? : null,
       child: Container(
         decoration: BoxDecoration(
-          color: color ?? primaryColor.withValues(alpha: isValid ? 1.0 : 0.5),
+          color: color ?? primaryColor.withValues(alpha: isValid ? 1.0 : 0.7),
           borderRadius: const BorderRadius.all(Radius.circular(40)),
         ),
         height: 48.0,

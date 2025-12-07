@@ -33,16 +33,28 @@ class OrderService {
     await rideOrdersCollection.add(orderData);
   }
 
-  // Stream to get ride orders for a specific user
-  Stream<List<RideOrder>> getRideOrdersStreamByUser(String userId) {
+  // Stream to get ride orders for current user by userId (phone number)
+  Stream<List<RideOrder>> getRideOrdersStreamByUserId(String userId) {
+    print('=== ORDER_SERVICE DEBUG ===');
+    print('Querying ride_orders with userId: $userId');
+    
+    if (userId.isEmpty) {
+      print('No userId provided, returning empty stream');
+      return Stream.value([]);
+    }
+    
     return rideOrdersCollection
         .where('userId', isEqualTo: userId)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
+      print('Firebase snapshot received: ${snapshot.docs.length} documents');
+      final orders = snapshot.docs.map((doc) {
+        print('Document ID: ${doc.id}, Data: ${doc.data()}');
         return RideOrder.fromMap(doc.data() as Map<String, dynamic>, docId: doc.id);
       }).toList();
+      print('Parsed ${orders.length} RideOrders');
+      return orders;
     });
   }
 

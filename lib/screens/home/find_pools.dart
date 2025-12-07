@@ -564,66 +564,63 @@ class FindPoolState extends ConsumerState<FindPool> {
                   Row(
                     children: [
                       Expanded(
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () => setState(() => isNowSelected = true),
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: isNowSelected ? primaryColor : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: primaryColor),
-                                ),
-                                child: Text(
-                                  'Now',
-                                  style: TextStyle(
-                                    color: isNowSelected ? Colors.white : primaryColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
+                        child: GestureDetector(
+                          onTap: () => setState(() => isNowSelected = true),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isNowSelected ? primaryColor : Colors.transparent,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: primaryColor),
                             ),
-                            SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () => setState(() => isNowSelected = false),
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: !isNowSelected ? primaryColor : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: primaryColor),
-                                ),
-                                child: Text(
-                                  'Later',
-                                  style: TextStyle(
-                                    color: !isNowSelected ? Colors.white : primaryColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (!isNowSelected)
-                        Flexible(
-                          flex: 2,
-                          child: GestureDetector(
-                            onTap: () => _selectDateTime(context),
-                            child: AbsorbPointer(
-                              child: TextEntryField(
-                                controller: dateTimeController,
-                                hint: 'Date and time',
-                                prefixIcon: Icon(
-                                  Icons.calendar_today,
-                                  color: Colors.grey,
-                                  size: 17,
-                                ),
+                            child: Text(
+                              'Now',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: isNowSelected ? Colors.white : primaryColor,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
                         ),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: !isNowSelected
+                            ? GestureDetector(
+                                onTap: () => _selectDateTime(context),
+                                child: AbsorbPointer(
+                                  child: TextEntryField(
+                                    controller: dateTimeController,
+                                    hint: 'Date and time',
+                                    prefixIcon: Icon(
+                                      Icons.calendar_today,
+                                      color: Colors.grey,
+                                      size: 17,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : GestureDetector(
+                                onTap: () => setState(() => isNowSelected = false),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: primaryColor),
+                                  ),
+                                  child: Text(
+                                    'Later',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: primaryColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ),
                     ],
                   ),
                   // New widget for Est. Price:
@@ -653,6 +650,7 @@ class FindPoolState extends ConsumerState<FindPool> {
                       },
                       text: "Pay",
                       textColor: kWhiteColor,
+                
                     ),
                   
                   
