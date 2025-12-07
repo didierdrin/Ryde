@@ -368,12 +368,13 @@ class WhatsappPoolAccept extends ConsumerWidget {
                         child: SizedBox(
                           width: 30,
                           height: 30,
-                          child: Image.asset(
-                            width: 30,
-                            height: 30,
-                            'assets/whatsapp.png',
-                            fit: BoxFit.cover,
-                          ),
+                          child: Icon(Icons.chat), 
+                          // child: Image.asset(
+                          //   width: 30,
+                          //   height: 30,
+                          //   'assets/whatsapp.png',
+                          //   fit: BoxFit.cover,
+                          // ),
                         ),
                       ),
                     ],

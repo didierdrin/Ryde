@@ -116,7 +116,7 @@ class _TripsState extends ConsumerState<Trips> with TickerProviderStateMixin {
               tabs: [
                 Tab(text: "My Trips"),
                       Tab(text: 'NearBy Passengers'),
-                      Tab(text: 'NearBy Drivers'),
+                      // Tab(text: 'NearBy Drivers'),
               ],
               // tabs: hasVehicle
               //     ? (driverHasMadeRequest
@@ -141,24 +141,29 @@ class _TripsState extends ConsumerState<Trips> with TickerProviderStateMixin {
           backgroundColor: Colors.white,
           body: TabBarView(
             controller: tabController,
-            children: hasVehicle
-                ? (driverHasMadeRequest
-                      ? [
-                          _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
+            children: [
+              _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
                           _buildSafeWidget(() => SearchPassengers(), 'SearchPassengers'),
-                          _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
-                        ]
-                      : [
-                          _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
-                          _buildSafeWidget(() => SearchPassengers(), 'SearchPassengers'),
-                          _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
-                        ])
-                : [
-                    _buildSafeWidget(() => FindingTab(), 'FindingTab'),
-                    _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
-                  ],
-          ),
-        ),
+              
+            ],
+          //   children: hasVehicle
+          //       ? (driverHasMadeRequest
+          //             ? [
+          //                 _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
+          //                 _buildSafeWidget(() => SearchPassengers(), 'SearchPassengers'),
+          //                 _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
+          //               ]
+          //             : [
+          //                 _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
+          //                 _buildSafeWidget(() => SearchPassengers(), 'SearchPassengers'),
+          //                 _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
+          //               ])
+          //       : [
+          //           _buildSafeWidget(() => FindingTab(), 'FindingTab'),
+          //           _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
+          //         ],
+          // ),
+        ),),
       );
     } catch (e, stackTrace) {
       print('Trips: Critical error in build method: $e');

@@ -1,9 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ryde_rw/models/offer_pool_model.dart';
 import 'package:ryde_rw/models/request_model.dart';
+import 'package:ryde_rw/screens/chats/chat_page.dart';
+import 'package:ryde_rw/service/chat_service.dart';
 import 'package:ryde_rw/service/location_service.dart';
 import 'package:ryde_rw/service/messages_service.dart';
 import 'package:ryde_rw/service/offer_pool_service.dart';
@@ -11,7 +14,6 @@ import 'package:ryde_rw/service/request_rider_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/utils.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class PoolRejectAccept extends ConsumerWidget {
   final PassengerOfferPool offerPoo;
@@ -460,38 +462,28 @@ class PoolRejectAccept extends ConsumerWidget {
                       SizedBox(width: 10),
                       GestureDetector(
                         onTap: () async {
-                          final phone = offer.requestedBy.replaceFirst('+', '');
-                          print(phone);
-                          final Uri url = Uri.parse('https://wa.me/$phone');
+                          final currentUser = FirebaseAuth.instance.currentUser;
+                          if (currentUser == null) return;
 
-                          try {
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(
-                                url,
-                                mode: LaunchMode.externalApplication,
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Could not launch WhatsApp.'),
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: Fail')),
-                            );
-                          }
+                          final chatId = await ChatService.getOrCreateChat(
+                            currentUser.uid,
+                            offer.requestedBy,
+                          );
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChatPage(
+                                chatId: chatId,
+                                otherUserId: offer.requestedBy,
+                              ),
+                            ),
+                          );
                         },
                         child: SizedBox(
                           width: 30,
                           height: 30,
-                          child: Image.asset(
-                            width: 30,
-                            height: 30,
-                            'assets/whatsapp.png',
-                            fit: BoxFit.cover,
-                          ),
+                          child: Icon(Icons.chat),
                         ),
                       ),
                     ],
@@ -540,38 +532,28 @@ class PoolRejectAccept extends ConsumerWidget {
                       SizedBox(width: 10),
                       GestureDetector(
                         onTap: () async {
-                          final phone = offer.requestedBy.replaceFirst('+', '');
-                          print(phone);
-                          final Uri url = Uri.parse('https://wa.me/$phone');
+                          final currentUser = FirebaseAuth.instance.currentUser;
+                          if (currentUser == null) return;
 
-                          try {
-                            if (await canLaunchUrl(url)) {
-                              await launchUrl(
-                                url,
-                                mode: LaunchMode.externalApplication,
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Could not launch WhatsApp.'),
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: Fail')),
-                            );
-                          }
+                          final chatId = await ChatService.getOrCreateChat(
+                            currentUser.uid,
+                            offer.requestedBy,
+                          );
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ChatPage(
+                                chatId: chatId,
+                                otherUserId: offer.requestedBy,
+                              ),
+                            ),
+                          );
                         },
                         child: SizedBox(
                           width: 30,
                           height: 30,
-                          child: Image.asset(
-                            width: 30,
-                            height: 30,
-                            'assets/whatsapp.png',
-                            fit: BoxFit.cover,
-                          ),
+                          child: Icon(Icons.chat),
                         ),
                       ),
                     ],

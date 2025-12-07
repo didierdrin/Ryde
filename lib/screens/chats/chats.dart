@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ryde_rw/screens/chats/chat_page.dart';
+import 'package:ryde_rw/service/chat_service.dart';
 import 'package:ryde_rw/theme/colors.dart';
 
 class Chats extends StatelessWidget {
@@ -72,54 +73,61 @@ class Chats extends StatelessWidget {
 }
 
 class ChatRooms extends StatelessWidget {
-  final List imgs = [
-    "assets/profiles/img1.png",
-    "assets/profiles/img2.png",
-    "assets/profiles/img3.png",
-    "assets/profiles/img4.png",
-    "assets/profiles/img1.png",
-    "assets/profiles/img3.png",
-    "assets/profiles/img4.png",
-    "assets/profiles/img2.png",
-  ];
-  final List names = [
-    "George Anderson",
-    "Emili Williamson",
-    "Mark Taylor",
-    "Lisa Davis",
-    "Deneil Haydon",
-    "Emili Williamson",
-    "Mark Taylor",
-    "Lisa Davis",
-  ];
-
   ChatRooms({super.key});
 
   @override
   Widget build(BuildContext context) {
-    try {
-      print('ChatRooms: Building chat rooms list');
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 10),
-        color: backgroundColor,
-        child: ListView.builder(
-          padding: EdgeInsets.only(bottom: 10),
-          itemCount: 8,
-          itemBuilder: (BuildContext context, int index) {
-            try {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      return Center(child: Text('Please login to view chats'));
+    }
+
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: ChatService.getChatRooms(currentUser.uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('No chats yet', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+          );
+        }
+
+        final chats = snapshot.data!;
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 10),
+          color: backgroundColor,
+          child: ListView.builder(
+            padding: EdgeInsets.only(bottom: 10),
+            itemCount: chats.length,
+            itemBuilder: (context, index) {
+              final chat = chats[index];
+              final participants = List<String>.from(chat['participants']);
+              final otherUserId = participants.firstWhere(
+                (id) => id != currentUser.uid,
+                orElse: () => '',
+              );
+
               return GestureDetector(
                 onTap: () {
-                  try {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ChatPage()),
-                    );
-                  } catch (e) {
-                    print('ChatRooms: Error navigating to chat: $e');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error opening chat')),
-                    );
-                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatPage(
+                        chatId: chat['id'],
+                        otherUserId: otherUserId,
+                      ),
+                    ),
+                  );
                 },
                 child: Container(
                   margin: EdgeInsets.only(top: 10),
@@ -129,67 +137,34 @@ class ChatRooms extends StatelessWidget {
                   ),
                   child: ListTile(
                     contentPadding: EdgeInsets.symmetric(horizontal: 10),
-                    leading: SizedBox(
-                      height: 50,
-                      child: Image.asset(imgs[index]),
+                    leading: CircleAvatar(
+                      radius: 25,
+                      child: Icon(Icons.person),
                     ),
                     title: Text(
-                      names[index],
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge!.copyWith(fontSize: 13.5),
+                      otherUserId,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyLarge!
+                          .copyWith(fontSize: 13.5),
                     ),
-                    subtitle: Row(
-                      children: [
-                        Text(
-                          "No",
-                          style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                    subtitle: Text(
+                      chat['lastMessage'] ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium!.copyWith(
                             fontSize: 12,
                             color: Color(0xffa8aeb2),
                           ),
-                        ),
-                        Spacer(),
-                        Text(
-                          "20 min",
-                          style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-                            fontSize: 10,
-                            color: Color(0xffcccccc),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
               );
-            } catch (e) {
-              print('ChatRooms: Error building chat item at index $index: $e');
-              return Container(
-                margin: EdgeInsets.only(top: 10),
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.grey[100],
-                ),
-                child: Text('Error loading chat'),
-              );
-            }
-          },
-        ),
-      );
-    } catch (e, stackTrace) {
-      print('ChatRooms: Critical error in build method: $e');
-      print('Stack trace: $stackTrace');
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.red),
-            SizedBox(height: 16),
-            Text('Error loading chat rooms'),
-          ],
-        ),
-      );
-    }
+            },
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -222,10 +197,7 @@ class Archive extends StatelessWidget {
         itemBuilder: (BuildContext context, int index) {
           return GestureDetector(
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ChatPage()),
-              );
+              // Archive functionality not implemented
             },
             child: Container(
               margin: EdgeInsets.only(top: 10),

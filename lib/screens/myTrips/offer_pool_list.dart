@@ -190,7 +190,7 @@ class OfferingTab extends ConsumerWidget {
                   ),
                 ),
               )).toList(),
-              Expanded(
+              Expanded( // Accepted rides 
                 child: ListView.builder(
                   shrinkWrap: true,
                   padding: EdgeInsets.only(top: 10, bottom: 10),

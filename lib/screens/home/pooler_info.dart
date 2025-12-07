@@ -723,12 +723,7 @@ class PoolerInfoState extends State<PoolerInfo> {
                         child: IconButton(
                           icon: Icon(Icons.chat, color: primaryColor),
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatPage(),
-                              ),
-                            );
+                            // Chat functionality disabled - needs user ID
                           },
                         ),
                       ),

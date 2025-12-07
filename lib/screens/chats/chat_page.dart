@@ -1,15 +1,32 @@
 import 'package:flutter/material.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:ryde_rw/models/message.dart';
+import 'package:ryde_rw/service/chat_service.dart';
 import 'package:ryde_rw/theme/colors.dart';
 
-class ChatPage extends StatelessWidget {
-  final double iconSize = 10;
+class ChatPage extends StatefulWidget {
+  final String chatId;
+  final String otherUserId;
 
-  const ChatPage({super.key});
+  const ChatPage({super.key, required this.chatId, required this.otherUserId});
+
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  final TextEditingController _messageController = TextEditingController();
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    
+    final currentUser = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
@@ -18,46 +35,20 @@ class ChatPage extends StatelessWidget {
         toolbarHeight: 80,
         title: Row(
           children: [
-            Container(
-              // margin: EdgeInsets.symmetric(horizontal: 5, vertical: 5),
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Image.asset("assets/profiles/img1.png"),
+            CircleAvatar(
+              radius: 25,
+              child: Icon(Icons.person),
             ),
             SizedBox(width: 14),
             Text(
-              "Samantha Smith",
-              style: Theme.of(
-                context,
-              ).textTheme.bodyLarge!.copyWith(fontSize: 14),
+              widget.otherUserId,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyLarge!
+                  .copyWith(fontSize: 14),
             ),
           ],
         ),
-        centerTitle: true,
-        // actions: [
-        //   Padding(
-        //     padding: const EdgeInsets.symmetric(horizontal: 20),
-        //     child: GestureDetector(
-        //       onTap: () {
-        //         Navigator.push(
-        //           context,
-        //           MaterialPageRoute(
-        //             builder: (context) => TripPoolerInfo(
-        //                 "assets/profiles/img2.png", "Samantha Smith"),
-        //           ),
-        //         );
-        //       },
-        //       child: Icon(
-        //         Icons.info,
-        //         size: 17,
-        //         color: primaryColor,
-        //       ),
-        //     ),
-        //   ),
-        // ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -70,140 +61,54 @@ class ChatPage extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Container(
-                          margin: EdgeInsets.only(left: 15),
+              child: StreamBuilder<List<Message>>(
+                stream: ChatService.getMessages(widget.chatId),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Center(
+                      child: Text('No messages yet'),
+                    );
+                  }
+
+                  final messages = snapshot.data!;
+                  return ListView.builder(
+                    padding: EdgeInsets.all(15),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final message = messages[index];
+                      final isMe = message.sender == currentUser?.uid;
+
+                      return Align(
+                        alignment:
+                            isMe ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Container(
+                          margin: EdgeInsets.only(bottom: 10),
                           padding: EdgeInsets.symmetric(
                             horizontal: 15,
                             vertical: 10,
                           ),
                           decoration: BoxDecoration(
-                            color: Color(0xffebf3f9),
+                            color: isMe
+                                ? Color(0xfff8f9fd)
+                                : Color(0xffebf3f9),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Hello Sir",
-                                textAlign: TextAlign.start,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyLarge!
-                                    .copyWith(fontSize: 13.5),
-                              ),
-                              SizedBox(height: 5),
-                              Text(
-                                "20 min",
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium!
-                                    .copyWith(
-                                      fontSize: 10,
-                                      color: Color(0xffcccccc),
-                                    ),
-                              ),
-                            ],
+                          child: Text(
+                            message.text,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyLarge!
+                                .copyWith(fontSize: 13.5),
                           ),
                         ),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-                    Container(
-                      margin: EdgeInsets.only(left: 20),
-                      child: Container(
-                        margin: EdgeInsets.only(right: 15),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Color(0xfff8f9fd),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              "I will be",
-                              textAlign: TextAlign.end,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge!
-                                  .copyWith(
-                                    fontSize: 13.5,
-                                    color: Colors.black,
-                                  ),
-                            ),
-                            SizedBox(height: 5),
-                            Text(
-                              "20 min",
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium!
-                                  .copyWith(
-                                    fontSize: 10,
-                                    color: Color(0xffcccccc),
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Container(
-                          margin: EdgeInsets.only(left: 15),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 15,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Color(0xffebf3f9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            children: [
-                              Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "No worries",
-                                    textAlign: TextAlign.start,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyLarge!
-                                        .copyWith(fontSize: 13.5),
-                                  ),
-                                  SizedBox(height: 5),
-                                  Text(
-                                    "20 min",
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium!
-                                        .copyWith(
-                                          fontSize: 10,
-                                          color: Color(0xffcccccc),
-                                        ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 80),
-                  ],
-                ),
+                      );
+                    },
+                  );
+                },
               ),
             ),
             Padding(
@@ -221,14 +126,18 @@ class ChatPage extends StatelessWidget {
                         color: Color(0xfff8f9fd),
                       ),
                       child: TextFormField(
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium!.copyWith(color: Colors.grey),
+                        controller: _messageController,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium!
+                            .copyWith(color: Colors.black),
                         decoration: InputDecoration(
                           isDense: true,
                           border: InputBorder.none,
                           hintText: "Write your message",
-                          hintStyle: Theme.of(context).textTheme.bodyLarge!
+                          hintStyle: Theme.of(context)
+                              .textTheme
+                              .bodyLarge!
                               .copyWith(fontSize: 13.5, color: Colors.grey),
                         ),
                       ),
@@ -246,8 +155,16 @@ class ChatPage extends StatelessWidget {
                     child: Center(
                       child: IconButton(
                         icon: Icon(Icons.send, color: Colors.white, size: 22),
-                        onPressed: () {
-                          Navigator.pop(context);
+                        onPressed: () async {
+                          if (_messageController.text.trim().isEmpty) return;
+
+                          await ChatService.sendMessage(
+                            widget.chatId,
+                            _messageController.text.trim(),
+                            currentUser!.uid,
+                            widget.otherUserId,
+                          );
+                          _messageController.clear();
                         },
                       ),
                     ),
