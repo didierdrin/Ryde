@@ -116,7 +116,7 @@ class _TripsState extends ConsumerState<Trips> with TickerProviderStateMixin {
               tabs: [
                 Tab(text: "My Trips"),
                       Tab(text: 'NearBy Passengers'),
-                      // Tab(text: 'NearBy Drivers'),
+                      Tab(text: 'NearBy Drivers'),
               ],
               // tabs: hasVehicle
               //     ? (driverHasMadeRequest
