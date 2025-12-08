@@ -218,11 +218,11 @@ class HomeConsumerState extends ConsumerState<Home> {
                             unselectedLabelColor: kWhiteColor,
                             tabs: [
                               Tabcomp(icon: Icons.drive_eta, text: "Get a Ride"),
-                              if (hasVehicle)
-                                Tabcomp(
-                                  icon: Icons.escalator_warning_outlined,
-                                  text: "Set a Route",
-                                ),
+                              // if (hasVehicle)
+                              //   Tabcomp(
+                              //     icon: Icons.escalator_warning_outlined,
+                              //     text: "Set a Route",
+                              //   ),
                             ],
                           ),
                         ),

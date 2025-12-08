@@ -262,15 +262,20 @@ class _PoolTakerAcceptedOfferState
         userStreams.isLoading ||
         usersLocationStream.isLoading ||
         requestonOfferPoolStreams.isLoading;
-    final dataofferpool = offerpool.value ?? [] as PassengerOfferPool;
+    final dataofferpool = offerpool.value ?? widget.offerpool;
     final users = userStreams.value ?? [];
     final usersLocations = usersLocationStream.value ?? [];
     final requestonOfferPool = (requestonOfferPoolStreams.value ?? [])
         .where((e) => e.accepted == true && e.rejected != true)
         .toList();
     final user = ref.watch(userProvider);
+    if (user == null) {
+      return Scaffold(
+        body: Center(child: Text('User not found')),
+      );
+    }
     final userLocationAsync = ref.watch(
-      LocationTrackingService.userLocationStream(user!.id),
+      LocationTrackingService.userLocationStream(user.id),
     );
 
     return Scaffold(
@@ -280,11 +285,14 @@ class _PoolTakerAcceptedOfferState
           children: [
             userLocationAsync.when(
               data: (position) {
+                if (position == null) {
+                  return Center(child: Text('Location not available'));
+                }
                 return GoogleMap(
                   mapType: MapType.normal,
                   initialCameraPosition: CameraPosition(
                     target: LatLng(
-                      position!.currentLocation.latitude,
+                      position.currentLocation.latitude,
                       position.currentLocation.longitude,
                     ),
                     zoom: 15.0,

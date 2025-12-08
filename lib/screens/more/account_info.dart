@@ -35,12 +35,27 @@ class AccountInfoState extends ConsumerState<AccountInfo> {
   @override
   void initState() {
     super.initState();
-    final user = ref.read(userProvider)!;
+    final user = ref.read(userProvider);
+    if (user == null) return;
+    
     nameController.text = user.fullName ?? '';
     phoneController.text = user.phoneNumber;
-    momoPhoneController.text = getPhone(user.momoPhoneNumber);
-    phone = user.momoPhoneNumber;
-    initialCountry = getCountryCode(user.momoPhoneNumber);
+    
+    try {
+      if (user.momoPhoneNumber.isNotEmpty && user.momoPhoneNumber.startsWith('+')) {
+        momoPhoneController.text = getPhone(user.momoPhoneNumber);
+        phone = user.momoPhoneNumber;
+        initialCountry = getCountryCode(user.momoPhoneNumber);
+      } else {
+        momoPhoneController.text = '';
+        phone = '';
+        initialCountry = 'RW';
+      }
+    } catch (e) {
+      momoPhoneController.text = '';
+      phone = '';
+      initialCountry = 'RW';
+    }
   }
 
   @override

@@ -469,8 +469,9 @@ class FindPoolState extends ConsumerState<FindPool> {
                   SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black,),
                       onPressed: () => Navigator.pop(context),
-                      child: Text('Done'),
+                      child: Text('Done', style: TextStyle(color: Colors.white),),
                     ),
                   ),
                 ],
@@ -521,15 +522,23 @@ class FindPoolState extends ConsumerState<FindPool> {
               topRight: Radius.circular(20),
             ),
           ),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+          child: MediaQuery.removePadding(
+            context: context,
+            removeBottom: true,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16.0,
+                  right: 16.0,
+                  top: 16.0,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 16.0,
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   LocationInputField(
                     destination: true,
                     location: pickup,
@@ -652,13 +661,13 @@ class FindPoolState extends ConsumerState<FindPool> {
                     text: "Pay",
                     textColor: kWhiteColor,
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-          ),
         ),
-      ),
+      ),),
     );
   }
 }

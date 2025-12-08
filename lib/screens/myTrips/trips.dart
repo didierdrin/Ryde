@@ -113,7 +113,7 @@ class _TripsState extends ConsumerState<Trips> with TickerProviderStateMixin {
               indicatorWeight: 4.0,
               tabs: hasVehicle
                   ? [
-                      Tab(text: "My Rides"),
+                      // Tab(text: "My Rides"),
                       Tab(text: "My Trips"),
                       Tab(text: 'NearBy Passengers'),
                     ]
@@ -127,7 +127,7 @@ class _TripsState extends ConsumerState<Trips> with TickerProviderStateMixin {
             controller: tabController,
             children: hasVehicle
                 ? [
-                    _buildSafeWidget(() => MyRidesTab(), 'MyRidesTab'),
+                    // _buildSafeWidget(() => MyRidesTab(), 'MyRidesTab'),
                     _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
                     _buildSafeWidget(() => SearchPassengers(), 'SearchPassengers'),
                   ]

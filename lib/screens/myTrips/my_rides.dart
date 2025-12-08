@@ -12,14 +12,18 @@ class MyRidesTab extends ConsumerWidget {
     final requestRidesStream = ref.watch(requestRidesStreamProvider);
 
     return requestRidesStream.when(
-      data: (requestRides) => ModalProgressHUD(
-        inAsyncCall: false,
-        child: Container(
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: requestRides.isEmpty
+      data: (requestRides) {
+        final sortedRides = requestRides.toList()
+          ..sort((a, b) => b.requestedTime.compareTo(a.requestedTime));
+        
+        return ModalProgressHUD(
+          inAsyncCall: false,
+          child: Container(
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: sortedRides.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -40,14 +44,14 @@ class MyRidesTab extends ConsumerWidget {
                     ],
                   ),
                 )
-              : ListView.builder(
-                  padding: EdgeInsets.symmetric(vertical: 10),
-                  itemCount: requestRides.length,
+              : ListView.separated(
+                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                  itemCount: sortedRides.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 10),
                   itemBuilder: (context, index) {
-                    final ride = requestRides[index];
+                    final ride = sortedRides[index];
                     return Container(
                       width: MediaQuery.of(context).size.width,
-                      margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(10),
@@ -154,8 +158,9 @@ class MyRidesTab extends ConsumerWidget {
                     );
                   },
                 ),
-        ),
-      ),
+          ),
+        );
+      },
       loading: () => ModalProgressHUD(
         inAsyncCall: true,
         child: Container(
