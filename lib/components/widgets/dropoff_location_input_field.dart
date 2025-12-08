@@ -76,6 +76,7 @@ class _DropoffLocationInputFieldState extends State<DropoffLocationInputField> {
           controller: controller,
           decoration: InputDecoration(
             filled: true,
+            fillColor: Colors.grey[100],
             isDense: false,
             contentPadding: const EdgeInsets.only(top: 15),
             prefixIcon: widget.prefixIcon,

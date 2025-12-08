@@ -79,8 +79,7 @@ class RequestRideService {
   static final allRequestRideStreamProvider = StreamProvider<List<RequestRide>>(
     (ref) {
       // final region = ref.watch(regionProvider)!;
-      return collection
-          .where('country_code', isEqualTo: "+250")
+      return collection          
           .snapshots()
           .map((querySnapshot) {
             return querySnapshot.docs.map((doc) {
@@ -97,7 +96,6 @@ class RequestRideService {
         final user = ref.watch(userProvider)!;
         return collection
             .where('rider', isEqualTo: riderId)
-            .where('country_code', isEqualTo: user.countryCode)
             .snapshots()
             .map((querySnapshot) {
               return querySnapshot.docs.map((doc) {
@@ -113,7 +111,6 @@ class RequestRideService {
         final user = ref.watch(userProvider)!;
         return collection
             .where('requestedBy', isEqualTo: requestedbyId)
-            .where('country_code', isEqualTo: user.countryCode)
             .snapshots()
             .map((querySnapshot) {
               return querySnapshot.docs.map((doc) {
@@ -129,7 +126,6 @@ class RequestRideService {
         final user = ref.watch(userProvider)!;
         return collection
             .where('offerpool', isEqualTo: offerpoolid)
-            .where('country_code', isEqualTo: user.countryCode)
             .snapshots()
             .map((querySnapshot) {
               return querySnapshot.docs.map((doc) {
@@ -149,7 +145,6 @@ class RequestRideService {
         .where('completed', isEqualTo: false)
         .where('accepted', isEqualTo: false)
         .where('cancelled', isEqualTo: false)
-        .where('country_code', isEqualTo: user.countryCode)
         .snapshots()
         .map((querySnapshot) {
           final List<RequestRide> passengers = querySnapshot.docs.map((doc) {

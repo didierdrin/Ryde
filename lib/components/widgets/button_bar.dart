@@ -27,7 +27,7 @@ class BottomBar extends StatelessWidget {
           borderRadius: const BorderRadius.all(Radius.circular(40)),
         ),
         height: 48.0,
-        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        // margin: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Center(
           child: Text(
             text.toUpperCase(),

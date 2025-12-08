@@ -46,29 +46,15 @@ final rideOrdersStreamProvider = StreamProvider<List<RideOrder>>((ref) async* {
 // StreamProvider for request rides filtered by current user's ID (phone number)
 final requestRidesStreamProvider = StreamProvider<List<RequestRide>>((ref) {
   final user = ref.watch(userProvider);
-  print('=== REQUEST_RIDES_PROVIDER DEBUG ===');
-  print('Filtering requestRiders by userId: ${user?.id}');
   
   if (user == null) {
-    print('No user, returning empty stream');
     return Stream.value([]);
   }
   
-  return ref.watch(RequestRideService.allRequestRideStreamProvider).when(
-    data: (requests) {
-      print('Total requests from Firebase: ${requests.length}');
-      final filtered = requests.where((request) => request.requestedBy == user.id).toList();
-      print('Filtered requests for user: ${filtered.length}');
-      return Stream.value(filtered);
-    },
-    loading: () {
-      print('Loading requests...');
-      return Stream.value([]);
-    },
-    error: (err, stack) {
-      print('Error loading requests: $err');
-      return Stream.value([]);
-    },
+  return ref.watch(RequestRideService.ridesRequestedByUserProvider(user.id)).when(
+    data: (requests) => Stream.value(requests),
+    loading: () => Stream.value([]),
+    error: (_, __) => Stream.value([]),
   );
 });
 

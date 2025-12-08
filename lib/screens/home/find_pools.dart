@@ -521,14 +521,15 @@ class FindPoolState extends ConsumerState<FindPool> {
               topRight: Radius.circular(20),
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 16, 16, 0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   LocationInputField(
                     destination: true,
                     location: pickup,
@@ -624,39 +625,37 @@ class FindPoolState extends ConsumerState<FindPool> {
                     ],
                   ),
                   // New widget for Est. Price:
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
-                    child: Container(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 10, 0),
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: const Color.fromARGB(255, 199, 199, 199),
-                          ),
-                        ),
-                      ),
-                      child: Text(
-                        'Est. Price: ${getEstimatedPrice()} FRW (only Taxi)',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    ),
-                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
+                  //   child: Container(
+                  //     padding: const EdgeInsets.fromLTRB(20, 0, 10, 0),
+                  //     width: double.infinity,
+                  //     decoration: BoxDecoration(
+                  //       border: Border(
+                  //         bottom: BorderSide(
+                  //           color: const Color.fromARGB(255, 199, 199, 199),
+                  //         ),
+                  //       ),
+                  //     ),
+                  //     child: Text(
+                  //       'Est. Price: ${getEstimatedPrice()} FRW (only Taxi)',
+                  //       style: TextStyle(fontSize: 16, color: Colors.grey),
+                  //     ),
+                  //   ),
+                  // ),
                   SizedBox(height: 20),
                   BottomBar(
-                      isValid: isValid(),
-                      onTap: () {
-                        _submitForm();
-                      },
-                      text: "Pay",
-                      textColor: kWhiteColor,
-                
-                    ),
-                  
-                  
+                    isValid: isValid(),
+                    onTap: () {
+                      _submitForm();
+                    },
+                    text: "Pay",
+                    textColor: kWhiteColor,
+                  ),
                 ],
               ),
             ),
+          ),
           ),
         ),
       ),
