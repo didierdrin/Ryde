@@ -407,71 +407,197 @@ class FindPoolState extends ConsumerState<FindPool> {
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       builder: (context) {
         return Container(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.fromLTRB(24, 10, 24, 30),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Trip Details',
-                style: Theme.of(context).textTheme.headlineSmall,
+                'Trip Summary',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
+                ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 20),
-              _buildDetailRow('From:', pickup!.address),
-              _buildDetailRow('To:', dropOff!.address),
-              _buildDetailRow('Date & Time:', DateFormat('yyyy-MM-dd HH:mm').format(dateTime)),
-              _buildDetailRow('Vehicle:', vehicleType),
-              _buildDetailRow('Est. Price:', '${getEstimatedPrice()} FRW'),
-              SizedBox(height: 30),
-              Text(
-                'Payment Code',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              SizedBox(height: 10),
+              SizedBox(height: 25),
+              
+              // Route Timeline
               Container(
-                padding: EdgeInsets.all(15),
+                padding: EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey[300]!),
+                  color: kLightGreyColor.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: Text(
-                        paymentCode,
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
+                    Column(
+                      children: [
+                        Icon(Icons.circle, color: kMainColor, size: 14),
+                        Container(
+                          height: 30,
+                          width: 2,
+                          color: kDisabledColor.withValues(alpha: 0.2),
+                          margin: EdgeInsets.symmetric(vertical: 4),
+                        ),
+                        Icon(Icons.location_on, color: kMainColor, size: 20),
+                      ],
                     ),
-                    IconButton(
-                      onPressed: () {
-                        Clipboard.setData(ClipboardData(text: paymentCode));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Payment code copied!')),
-                        );
-                      },
-                      icon: Icon(Icons.copy),
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Pickup', style: TextStyle(color: kSimpleText, fontSize: 12)),
+                              SizedBox(height: 2),
+                              Text(
+                                pickup!.address,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  color: kTextColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 16),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Drop-off', style: TextStyle(color: kSimpleText, fontSize: 12)),
+                              SizedBox(height: 2),
+                              Text(
+                                dropOff!.address,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  color: kTextColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
+              
+              SizedBox(height: 25),
+              
+              // Details Grid
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildInfoItem('Date', DateFormat('MMM dd, HH:mm').format(dateTime), Icons.calendar_today_rounded),
+                  _buildVehicleItem(vehicleType, iconPath(vehicleType)),
+                  _buildInfoItem('Price', '${getEstimatedPrice()} FRW', Icons.payments_outlined),
+                ],
+              ),
+              
               SizedBox(height: 30),
+              
+              // Payment Section
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                decoration: BoxDecoration(
+                  color: kMainColor.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: kMainColor.withValues(alpha: 0.08)),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Payment Code',
+                      style: TextStyle(
+                        color: kSimpleText,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    InkWell(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: paymentCode));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Payment code copied!', 
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            backgroundColor: kMainColor,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(10),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              paymentCode,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5,
+                                color: kMainColor,
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Icon(Icons.copy_rounded, size: 18, color: kMainColor),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              SizedBox(height: 30),
+              
+              // Action Buttons
               Row(
                 children: [
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text('Cancelled'),
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      ),
+                      child: Text(
+                        'Dismiss',
+                        style: TextStyle(
+                          color: kSimpleText,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(width: 10),
+                  SizedBox(width: 16),
                   Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.black,),
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Done', style: TextStyle(color: Colors.white),),
+                    child: BottomBar(
+                      text: 'Done',
+                      onTap: () => Navigator.pop(context),
                     ),
                   ),
                 ],
@@ -483,24 +609,53 @@ class FindPoolState extends ConsumerState<FindPool> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
+  Widget _buildInfoItem(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: kLightGreyColor.withValues(alpha: 0.5),
+            shape: BoxShape.circle,
           ),
-          Expanded(
-            child: Text(value),
+          child: Icon(icon, size: 24, color: kMainColor),
+        ),
+        SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: kSimpleText, fontWeight: FontWeight.w500),
+        ),
+        SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextColor),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVehicleItem(String label, String iconPath) {
+    return Column(
+      children: [
+         Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: kLightGreyColor.withValues(alpha: 0.5),
+            shape: BoxShape.circle,
           ),
-        ],
-      ),
+          child: Image.asset(iconPath, width: 24, height: 24, color: kMainColor),
+        ),
+        SizedBox(height: 8),
+        Text(
+          "Vehicle",
+          style: TextStyle(fontSize: 12, color: kSimpleText, fontWeight: FontWeight.w500),
+        ),
+        SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kTextColor),
+        ),
+      ],
     );
   }
 
