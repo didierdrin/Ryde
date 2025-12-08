@@ -122,45 +122,28 @@ class UserService {
 //     return null;
 //   }
 
-//   static final getRegionProvider = StreamProvider.family<Region?, String>((
-//     ref,
-//     code,
-//   ) {
-//     return fireStore
-//         .collection(regionCollection)
-//         .where('code', isEqualTo: code)
-//         .snapshots()
-//         .map((snapshot) {
-//           if (snapshot.docs.isNotEmpty) {
-//             final data = snapshot.docs.first.data();
-//             return Region.fromJSON(data);
-//           }
-//           return null;
-//         });
-//   });
-
-//   // For uploading profile images
-//   static Future<void> updateUserWithFile(
-//     String userId,
-//     Map<String, dynamic> userData, {
-//     File? file,
-//     String? fileField,
-//     String? storageFolder,
-//   }) async {
-//     try {
-//       if (file != null && fileField != null && storageFolder != null) {
-//         final fileUrl = await FirebaseStorageService.uploadImage(
-//           file,
-//           storageFolder,
-//         );
-//         userData[fileField] = fileUrl;
-//       }
-//       await fireStore.collection(collection).doc(userId).update(userData);
-//     } catch (e) {
-//       rethrow;
-//     }
-//   }
-// }
+  // For uploading profile images
+  static Future<void> updateUserWithFile(
+    String userId,
+    Map<String, dynamic> userData, {
+    File? file,
+    String? fileField,
+    String? storageFolder,
+  }) async {
+    try {
+      if (file != null && fileField != null && storageFolder != null) {
+        final fileUrl = await FirebaseStorageService.uploadImage(
+          file,
+          storageFolder,
+        );
+        userData[fileField] = fileUrl;
+      }
+      await fireStore.collection(collection).doc(userId).update(userData);
+    } catch (e) {
+      rethrow;
+    }
+  }
+}
 
 // class RegionService {
 //   static final collection = collections.regions;
@@ -187,5 +170,5 @@ class UserService {
 //       }).toList();
 //     });
 //   });
-}
+
 

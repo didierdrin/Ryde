@@ -82,28 +82,53 @@ class _ChatPageState extends State<ChatPage> {
                       final message = messages[index];
                       final isMe = message.sender == currentUser?.uid;
 
-                      return Align(
-                        alignment:
-                            isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: EdgeInsets.only(bottom: 10),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 15,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isMe
-                                ? Color(0xfff8f9fd)
-                                : Color(0xffebf3f9),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            message.text,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyLarge!
-                                .copyWith(fontSize: 13.5),
-                          ),
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 10),
+                        child: Row(
+                          mainAxisAlignment: isMe
+                              ? MainAxisAlignment.end
+                              : MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (!isMe) ...[
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Color(0xffebf3f9),
+                                child: Icon(Icons.person, size: 18, color: primaryColor),
+                              ),
+                              SizedBox(width: 8),
+                            ],
+                            Flexible(
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 15,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isMe ? primaryColor : Color(0xffebf3f9),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  message.text,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge!
+                                      .copyWith(
+                                        fontSize: 13.5,
+                                        color: isMe ? Colors.white : Colors.black87,
+                                      ),
+                                ),
+                              ),
+                            ),
+                            if (isMe) ...[
+                              SizedBox(width: 8),
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: primaryColor.withOpacity(0.2),
+                                child: Icon(Icons.person, size: 18, color: primaryColor),
+                              ),
+                            ],
+                          ],
                         ),
                       );
                     },

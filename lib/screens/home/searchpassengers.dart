@@ -38,7 +38,8 @@ final _nearbyPassengersProvider = StreamProvider.family<List<RequestRide>, LatLn
           return distance <= 3 &&
               !passenger.accepted &&
               passenger.rider.isEmpty &&
-              !passenger.cancelled;
+              !passenger.cancelled &&
+              passenger.requestedBy != user.id;
         }).toList();
 
         return nearbyPassengers;

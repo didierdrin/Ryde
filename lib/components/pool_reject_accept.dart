@@ -22,7 +22,7 @@ class PoolRejectAccept extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // flutter run -d chrome
+  
     //
     // final region = ref.read(regionProvider);
     final theme = Theme.of(context);

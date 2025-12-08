@@ -206,10 +206,11 @@ class More extends ConsumerWidget {
                                     child: SizedBox(
                                       height: 70,
                                       width: 50,
-                                      child: Image.asset(
-                                        'assets/qrcode.png',
-                                        fit: BoxFit.cover,
-                                      ),
+                                      child: Icon(Icons.qr_code, size: 34,),
+                                      // child: Image.asset(
+                                      //   'assets/qrcode.png',
+                                      //   fit: BoxFit.cover,
+                                      // ),
                                     ),
                                   ),
                                 ),
@@ -377,19 +378,19 @@ Container(
               ),
             
 
-         Container(
-                width: MediaQuery.of(context).size.width,
-                decoration: BoxDecoration(color: Colors.white),
-                child: BuildListTile(
-                  isSelected: false,
-                  icon: Icons.qr_code_2,
-                  image: 'assets/solar_cart-outline.png',
-                  text: 'Mobile Money QR Code',
-                  onTap: () {
-                    showMobileNumberModal(context);
-                  },
-                ),
-              ),
+        //  Container(
+        //         width: MediaQuery.of(context).size.width,
+        //         decoration: BoxDecoration(color: Colors.white),
+        //         child: BuildListTile(
+        //           isSelected: false,
+        //           icon: Icons.qr_code_2,
+        //           image: 'assets/solar_cart-outline.png',
+        //           text: 'Mobile Money QR Code',
+        //           onTap: () {
+        //             showMobileNumberModal(context);
+        //           },
+        //         ),
+        //       ),
             
 
             Container(

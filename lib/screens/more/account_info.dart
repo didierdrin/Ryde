@@ -83,35 +83,53 @@ class AccountInfoState extends ConsumerState<AccountInfo> {
   }
 
   Future<void> handleUpdate() async {
+    final user = ref.read(userProvider);
+    if (user == null) return;
+    
     setState(() {
       isLoading = true;
     });
     try {
-      final user = ref.watch(userProvider)!;
       final userData = {
         'fullName': nameController.text,
         'momoPhoneNumber': phone,
       };
 
       if (profileImage != null) {
-        // await UserService.updateUserWithFile(
-        //   user.id,
-        //   userData,
-        //   file: File(profileImage!.path),
-        //   fileField: 'profilePicture',
-        //   storageFolder: 'user_profiles',
-        // );
+        await UserService.updateUserWithFile(
+          user.id,
+          userData,
+          file: File(profileImage!.path),
+          fileField: 'profilePicture',
+          storageFolder: 'user_profiles',
+        );
       } else {
         await UserService.updateUser(user.id, userData);
       }
 
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.green,
+            content: Text('Profile updated successfully'),
+          ),
+        );
+        setState(() {
+          isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Colors.red,
+            content: Text('Failed to update profile'),
+          ),
+        );
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -121,7 +139,21 @@ class AccountInfoState extends ConsumerState<AccountInfo> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(userProvider)!;
+    final user = ref.watch(userProvider);
+    
+    if (user == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading user data...'),
+          ],
+        ),
+      );
+    }
+    
     isValid();
 
     return ModalProgressHUD(

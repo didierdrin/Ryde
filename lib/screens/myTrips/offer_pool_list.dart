@@ -190,7 +190,7 @@ class OfferingTab extends ConsumerWidget {
                   ),
                 ),
               )).toList(),
-              Expanded( // Accepted rides 
+              Expanded( // Accepted rides with passengers 
                 child: ListView.builder(
                   shrinkWrap: true,
                   padding: EdgeInsets.only(top: 10, bottom: 10),
@@ -200,7 +200,7 @@ class OfferingTab extends ConsumerWidget {
                     final reqd = requestonoffer.where(
                       (e) =>
                           e.offerpool == offerData.id &&
-                          e.accepted == false &&
+                          e.accepted == true &&
                           e.rejected == false &&
                           e.cancelled != true,
                     );
@@ -349,12 +349,10 @@ class OfferingTab extends ConsumerWidget {
                                           final occupantImage = isOccupied
                                               ? 'assets/profiles/img${gridIndex + 1}.png'
                                               : null;
-                                          final acceptedUser = userdata
+                                          final acceptedUser = isOccupied ? userdata
                                               .firstWhereOrNull(
-                                                (user) => offerData
-                                                    .availableSeat
-                                                    .contains(user.id),
-                                              );
+                                                (user) => user.id == offerData.availableSeat[gridIndex],
+                                              ) : null;
 
                                           return Stack(
                                             alignment:

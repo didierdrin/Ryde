@@ -4,6 +4,7 @@ import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import '../home/searchdrivers.dart';
 import '../home/searchpassenger.dart';
 import './finding_pool_list.dart';
+import './my_rides.dart';
 import './offer_pool_list.dart';
 import 'package:ryde_rw/service/request_rider_service.dart';
 import 'package:ryde_rw/service/vehicle_service.dart';
@@ -67,13 +68,10 @@ class _TripsState extends ConsumerState<Trips> with TickerProviderStateMixin {
 
       bool hasVehicle = vehicleAsyncValue.value != null;
       final requested = requestStreams.value ?? [];
-      bool driverHasMadeRequest = requested.any((request) {
-        return request.requestedBy == user.id;
-      });
       
       print('Trips: Vehicle status - hasVehicle: $hasVehicle, requests: ${requested.length}');
 
-      int tabLength = hasVehicle ? (driverHasMadeRequest ? 3 : 3) : 2;
+      int tabLength = hasVehicle ? 3 : 1;
 
       if (tabController.length != tabLength) {
         tabController.dispose();
@@ -113,57 +111,31 @@ class _TripsState extends ConsumerState<Trips> with TickerProviderStateMixin {
               indicatorSize: TabBarIndicatorSize.label,
               indicatorColor: Theme.of(context).primaryColor,
               indicatorWeight: 4.0,
-              tabs: [
-                Tab(text: "My Trips"),
+              tabs: hasVehicle
+                  ? [
+                      Tab(text: "My Rides"),
+                      Tab(text: "My Trips"),
                       Tab(text: 'NearBy Passengers'),
-                      // Tab(text: 'NearBy Drivers'),
-              ],
-              // tabs: hasVehicle
-              //     ? (driverHasMadeRequest
-              //           ? [
-              //               Tab(text: "My Trips"),
-              //               Tab(text: 'NearBy Passengers'),
-              //               Tab(text: 'NearBy Drivers'),
-              //             ]
-              //           : [
-              //               Tab(text: "My Trips"),
-              //               Tab(text: 'NearBy Passengers'),
-              //               Tab(text: 'NearBy Drivers'),
-              //             ])
-              //     : [
-              //         Tab(text: "My Trips"),
-              //         Tab(text: 'NearBy Passengers'),
-              //         Tab(text: 'NearBy Drivers'),
-
-              //       ],
+                    ]
+                  : [
+                      Tab(text: "My Rides"),
+                    ],
             ),
           ),
           backgroundColor: Colors.white,
           body: TabBarView(
             controller: tabController,
-            children: [
-              _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
-                          _buildSafeWidget(() => SearchPassengers(), 'SearchPassengers'),
-              
-            ],
-          //   children: hasVehicle
-          //       ? (driverHasMadeRequest
-          //             ? [
-          //                 _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
-          //                 _buildSafeWidget(() => SearchPassengers(), 'SearchPassengers'),
-          //                 _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
-          //               ]
-          //             : [
-          //                 _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
-          //                 _buildSafeWidget(() => SearchPassengers(), 'SearchPassengers'),
-          //                 _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
-          //               ])
-          //       : [
-          //           _buildSafeWidget(() => FindingTab(), 'FindingTab'),
-          //           _buildSafeWidget(() => Searchdrivers(), 'Searchdrivers'),
-          //         ],
-          // ),
-        ),),
+            children: hasVehicle
+                ? [
+                    _buildSafeWidget(() => MyRidesTab(), 'MyRidesTab'),
+                    _buildSafeWidget(() => OfferingTab(), 'OfferingTab'),
+                    _buildSafeWidget(() => SearchPassengers(), 'SearchPassengers'),
+                  ]
+                : [
+                    _buildSafeWidget(() => MyRidesTab(), 'MyRidesTab'),
+                  ],
+          ),
+        ),
       );
     } catch (e, stackTrace) {
       print('Trips: Critical error in build method: $e');
