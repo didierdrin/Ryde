@@ -258,7 +258,7 @@ class FindPoolState extends ConsumerState<FindPool> {
         accepted: false,
         offerpool: '',
         paid: false,
-        price: 0,
+        price: 1500, // Estimated Price 
         type: type,
         seats: 1,
         countryCode: user.countryCode,
@@ -686,7 +686,7 @@ class FindPoolState extends ConsumerState<FindPool> {
                   left: 16.0,
                   right: 16.0,
                   top: 16.0,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 16.0,
+                  bottom: 16.0, //MediaQuery.of(context).viewInsets.bottom + 16.0,
                 ),
                 child: Form(
                   key: _formKey,
@@ -735,7 +735,7 @@ class FindPoolState extends ConsumerState<FindPool> {
                             padding: EdgeInsets.symmetric(vertical: 8),
                             decoration: BoxDecoration(
                               color: isNowSelected ? primaryColor : Colors.transparent,
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(5),
                               border: Border.all(color: primaryColor),
                             ),
                             child: Text(
@@ -772,7 +772,7 @@ class FindPoolState extends ConsumerState<FindPool> {
                                   padding: EdgeInsets.symmetric(vertical: 8),
                                   decoration: BoxDecoration(
                                     color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(5),
                                     border: Border.all(color: primaryColor),
                                   ),
                                   child: Text(
@@ -788,25 +788,7 @@ class FindPoolState extends ConsumerState<FindPool> {
                       ),
                     ],
                   ),
-                  // New widget for Est. Price:
-                  // Padding(
-                  //   padding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
-                  //   child: Container(
-                  //     padding: const EdgeInsets.fromLTRB(20, 0, 10, 0),
-                  //     width: double.infinity,
-                  //     decoration: BoxDecoration(
-                  //       border: Border(
-                  //         bottom: BorderSide(
-                  //           color: const Color.fromARGB(255, 199, 199, 199),
-                  //         ),
-                  //       ),
-                  //     ),
-                  //     child: Text(
-                  //       'Est. Price: ${getEstimatedPrice()} FRW (only Taxi)',
-                  //       style: TextStyle(fontSize: 16, color: Colors.grey),
-                  //     ),
-                  //   ),
-                  // ),
+                 
                   SizedBox(height: 20),
                   BottomBar(
                     isValid: isValid(),

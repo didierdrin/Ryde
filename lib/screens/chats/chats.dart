@@ -12,6 +12,7 @@ class Chats extends StatelessWidget {
     try {
       print('Chats: Building chat screen');
       return Scaffold(
+        backgroundColor: Colors.white,
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: Text(
@@ -91,6 +92,7 @@ class ChatRooms extends StatelessWidget {
 
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return Center(
+            
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

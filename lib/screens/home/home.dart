@@ -168,10 +168,11 @@ class HomeConsumerState extends ConsumerState<Home> {
           alignment: Alignment.bottomCenter,
           children: [
             _buildGoogleMap(ref, driverNearYou, passengerNearYou, hasVehicle),
+            
             DraggableScrollableSheet(
               initialChildSize: 0.2,
               minChildSize: 0.2,
-              maxChildSize: 0.5,
+              maxChildSize: 0.45,
               builder: (context, scrollController) {
                 return SingleChildScrollView(
                   controller: scrollController,
@@ -186,6 +187,7 @@ class HomeConsumerState extends ConsumerState<Home> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        
                         Container(
                           margin: EdgeInsets.symmetric(vertical: 12),
                           height: 4,
@@ -210,7 +212,7 @@ class HomeConsumerState extends ConsumerState<Home> {
                           child: TabBar(
                             indicator: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(50),
+                              borderRadius: BorderRadius.circular(5),
                             ),
                             indicatorSize: TabBarIndicatorSize.tab,
                             dividerColor: Colors.transparent,
@@ -228,7 +230,7 @@ class HomeConsumerState extends ConsumerState<Home> {
                         ),
                         // Tab content
                         Container(
-                          height: MediaQuery.of(context).size.height * 0.5,
+                          height: 250,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.only(
