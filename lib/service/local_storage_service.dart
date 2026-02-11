@@ -14,6 +14,22 @@ class LocalStorage {
   static String userKey = 'current-user';
   static String userLocationKey = 'current-user-location';
   static String visitKey = 'visited';
+  static String tokenKey = 'auth-token';
+
+  static Future<void> setToken(String token) async {
+    final SharedPreferences pref = await SharedPreferences.getInstance();
+    await pref.setString(tokenKey, token);
+  }
+
+  static Future<String?> getToken() async {
+    final SharedPreferences pref = await SharedPreferences.getInstance();
+    return pref.getString(tokenKey);
+  }
+
+  static Future<void> removeToken() async {
+    final SharedPreferences pref = await SharedPreferences.getInstance();
+    await pref.remove(tokenKey);
+  }
 
   static Future<void> init(WidgetRef ref) async {
     final SharedPreferences pref = await SharedPreferences.getInstance();
