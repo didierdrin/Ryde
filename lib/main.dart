@@ -1,67 +1,78 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ryde_rw/screens/signin_signup.dart';
-import 'firebase_options.dart';
 import 'package:flutter/services.dart';
+import 'package:ryde_rw/screens/all_bottom_navigations_screen.dart';
+import 'package:ryde_rw/screens/signin_signup.dart';
+import 'package:ryde_rw/service/local_storage_service.dart';
+import 'package:ryde_rw/shared/shared_states.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   SystemChrome.setSystemUIOverlayStyle(
-  const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    systemNavigationBarColor: Colors.white,
-  ),
-);
-await SystemChrome.setPreferredOrientations([
-  DeviceOrientation.portraitUp,
-  DeviceOrientation.portraitDown,
-]);
-  
-  // Set up global error handling
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.white,
+    ),
+  );
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   FlutterError.onError = (FlutterErrorDetails details) {
     print('Flutter Error: ${details.exception}');
     print('Stack trace: ${details.stack}');
     FlutterError.presentError(details);
   };
-  
-  try {
-    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    print('Firebase initialized successfully');
-  } catch (e, stackTrace) {
-    print('Firebase initialization error: $e');
-    print('Stack trace: $stackTrace');
-  }
-  
+
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
-  
+  @override
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> {
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    try {
+      await LocalStorage.init(ref);
+    } catch (e) {
+      print('Init error: $e');
+    }
+    if (mounted) setState(() => _initialized = true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Ryde',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple)),
-      home: const SigninSignup(),
+      home: _initialized ? const AuthWrapper() : const Scaffold(body: Center(child: CircularProgressIndicator())),
       builder: (context, widget) {
-        // Global error boundary
         ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
           print('Widget Error: ${errorDetails.exception}');
-          print('Stack trace: ${errorDetails.stack}');
           return Scaffold(
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  SizedBox(height: 16),
-                  Text('Something went wrong'),
-                  SizedBox(height: 8),
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  const Text('Something went wrong'),
+                  const SizedBox(height: 8),
                   Text('Please restart the app', style: TextStyle(fontSize: 12)),
                 ],
               ),
@@ -74,3 +85,15 @@ class MyApp extends StatelessWidget {
   }
 }
 
+class AuthWrapper extends ConsumerWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(userProvider);
+    if (user == null) {
+      return const SigninSignup();
+    }
+    return const AllBottomNavigationsScreen();
+  }
+}

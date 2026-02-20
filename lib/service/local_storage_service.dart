@@ -1,122 +1,108 @@
 import 'dart:convert';
-import 'dart:io';
-import 'dart:ui';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ryde_rw/models/user.dart';
-import 'package:ryde_rw/service/notification_service.dart';
-import 'package:ryde_rw/service/user_service.dart';
+import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorage {
-  static String userKey = 'current-user';
-  static String userLocationKey = 'current-user-location';
-  static String visitKey = 'visited';
-  static String tokenKey = 'auth-token';
+  static const String userKey = 'current-user';
+  static const String userLocationKey = 'current-user-location';
+  static const String visitKey = 'visited';
+  static const String tokenKey = 'auth-token';
 
   static Future<void> setToken(String token) async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    await pref.setString(tokenKey, token);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(tokenKey, token);
   }
 
   static Future<String?> getToken() async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    return pref.getString(tokenKey);
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(tokenKey);
   }
 
   static Future<void> removeToken() async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    await pref.remove(tokenKey);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(tokenKey);
   }
 
   static Future<void> init(WidgetRef ref) async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    String? userLang = pref.getString('locale');
-    String localeLang = Platform.localeName.split('_').first;
-    localeLang = localeLang == 'fr' ? 'fr' : 'en';
-    final locale_ = Locale(userLang ?? localeLang);
-    // ref.read(localeProvider.notifier).state = locale_;
-    User? data = await getUser();
-    if (data != null) {
-      final userLocation = await getUserLocation();
-      ref.read(userProvider.notifier).state = data;
-      ref.read(locationProvider.notifier).state = userLocation ?? {};
-      await NotificationService.getToken().then((v) async {
-        final data_ = {...data.tokens, v}.toList();
-        UserService.updateUser(data.phoneNumber, {'tokens': data_});
-      });
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(tokenKey);
+    final savedUser = await getUser();
+    if (token != null && token.isNotEmpty) {
+      try {
+        final profile = await ApiService.getProfile();
+        final user = User.fromApiJson(profile);
+        ref.read(userProvider.notifier).setUser(user);
+        await setUser(user);
+      } catch (_) {
+        await removeToken();
+        await removeUser();
+        ref.read(userProvider.notifier).setUser(null);
+      }
+    } else if (savedUser != null) {
+      ref.read(userProvider.notifier).setUser(savedUser);
     }
-    await Future.delayed(const Duration(seconds: 1));
-    return ref.read(userProvider);
+    final userLocation = await getUserLocation();
+    if (userLocation != null && userLocation.isNotEmpty) {
+      ref.read(locationProvider.notifier).setLocation(userLocation);
+    }
   }
 
   static Future<void> setUser(User user) async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    var jsonData = user.toJSON();
-    jsonData['joinedOn'] = user.joinedOn.toIso8601String();
-    String data = jsonEncode(jsonData);
-    await pref.setString(userKey, data);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(userKey, jsonEncode(user.toJSON()));
   }
 
   static Future<void> setUserLocation(Map<String, dynamic> data) async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    String info = jsonEncode(data);
-    await pref.setString(userLocationKey, info);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(userLocationKey, jsonEncode(data));
   }
 
   static Future<User?> getUser() async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    String? data = pref.getString(userKey);
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(userKey);
+    if (data == null) return null;
     try {
-      if (data != null) {
-        Map<String, dynamic> userData = jsonDecode(data);
-        DateTime joinedOn = DateTime.parse(userData['joinedOn']);
-        userData['joinedOn'] = Timestamp.fromDate(joinedOn);
-        return User.fromJSON(userData);
-      }
-    } catch (error) {
+      final map = jsonDecode(data) as Map<String, dynamic>;
+      return User.fromJSON(map);
+    } catch (_) {
       await removeUser();
       return null;
     }
-    return null;
   }
 
   static Future<Map<String, dynamic>?> getUserLocation() async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    String? data = pref.getString(userLocationKey);
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString(userLocationKey);
+    if (data == null) return null;
     try {
-      if (data != null) {
-        Map<String, dynamic> userLocationData = jsonDecode(data);
-        return userLocationData;
-      }
-    } catch (error) {
+      return jsonDecode(data) as Map<String, dynamic>;
+    } catch (_) {
       await removeUserLocation();
       return null;
     }
-    return null;
   }
 
   static Future<void> removeUser() async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    pref.remove(userKey);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(userKey);
   }
 
   static Future<void> removeUserLocation() async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    pref.remove(userLocationKey);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(userLocationKey);
   }
 
   static Future<void> setVisit({bool didVisit = true}) async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    pref.setBool(visitKey, didVisit);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(visitKey, didVisit);
   }
 
   static Future<bool> getVisit() async {
-    final SharedPreferences pref = await SharedPreferences.getInstance();
-    bool? data = pref.getBool(visitKey);
-    return data ?? false;
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(visitKey) ?? false;
   }
 }
-

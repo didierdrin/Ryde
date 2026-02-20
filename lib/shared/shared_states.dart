@@ -3,12 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ryde_rw/models/profiles_info.dart';
 import 'package:ryde_rw/models/user.dart';
-import 'package:ryde_rw/models/user_locations.dart';
 import 'package:ryde_rw/models/vehicle_model.dart';
 import 'package:ryde_rw/service/location_service.dart';
-import 'package:ryde_rw/service/qr_code_service.dart';
-import 'package:ryde_rw/service/user_location_service.dart';
-import 'package:ryde_rw/service/user_service.dart';
 
 final userProvider = NotifierProvider<UserNotifier, User?>(() {
   return UserNotifier();
@@ -73,31 +69,6 @@ class LocationNotifier extends Notifier<Map<String, dynamic>> {
 }
 
 
-
-final locationTrackingServiceProvider = Provider<LocationTrackingService>((
-  ref,
-) {
-  return LocationTrackingService();
-});
-
-final userLocationTrackerStream = StreamProvider.family<UserLocation, String>((
-  ref,
-  userId,
-) {
-  final locationTrackingService = ref.watch(locationTrackingServiceProvider);
-  return locationTrackingService.trackUserLocation(userId);
-});
-
-final qrCodeProvider = StreamProvider.family<String?, String>((ref, userId) {
-  return QRCodeService.getQRCodeStream(userId);
-});
-
-final userQrCodeProvider = StreamProvider.autoDispose.family<User, String>((
-  ref,
-  phoneNumber,
-) {
-  return UserService.userStreamQrCode(phoneNumber);
-});
 
 final locationsProvider = StreamProvider<Position>((ref) async* {
   final locationService = LocationsService();

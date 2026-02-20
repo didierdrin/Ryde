@@ -262,4 +262,30 @@ class ApiService {
     );
     return await _handleResponse(response);
   }
+
+  // Chat endpoints
+  static Future<Map<String, dynamic>> getChatConversations() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/chats/conversations'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> getChatMessages(String tripId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/chats/conversations/$tripId/messages'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> sendChatMessage(String tripId, String text) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/chats/conversations/$tripId/messages'),
+      headers: await _getHeaders(),
+      body: json.encode({'text': text}),
+    );
+    return await _handleResponse(response);
+  }
 }

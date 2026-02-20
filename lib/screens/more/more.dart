@@ -1,19 +1,13 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ryde_rw/components/widgets/build_list.dart';
-// import 'package:ryde_rw/screens/auth/welcome_page.dart';
 import 'package:ryde_rw/screens/more/change_language.dart';
-import 'package:ryde_rw/screens/more/generate_qrcode.dart';
 import 'package:ryde_rw/screens/more/manage_address.dart';
 import 'package:ryde_rw/screens/more/privacy_policy.dart';
-import 'package:ryde_rw/screens/more/profile.dart';
+import 'package:ryde_rw/screens/more/profile_simple.dart';
 import 'package:ryde_rw/screens/more/support.dart';
+import 'package:ryde_rw/screens/signin_signup.dart';
 import 'package:ryde_rw/service/local_storage_service.dart';
-import 'package:ryde_rw/service/qr_code_service.dart';
-import 'package:ryde_rw/service/user_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/theme/style_text.dart';
@@ -58,13 +52,9 @@ class More extends ConsumerWidget {
     }
   }
 
-  Future<void> shareQRCode(BuildContext context, String qrData) async {
+  void _shareQRCodeStub(BuildContext context, String qrData) async {
     try {
-      final qrFile = XFile(qrData);
-      await Share.shareXFiles([
-        qrFile,
-      ], text: 'Hey there, Here’s my MOMO QR Code. Get your on ICUPA App');
-
+      await Share.shareXFiles([XFile(qrData)], text: 'Ryde');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           backgroundColor: kGreen,
@@ -147,7 +137,7 @@ class More extends ConsumerWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => MyProfile(),
+                                builder: (context) => const ProfileSimple(),
                               ),
                             );
                           },
@@ -157,7 +147,7 @@ class More extends ConsumerWidget {
                               SizedBox(
                                 width: 170,
                                 child: Text(
-                                  user.fullName ?? user.phoneNumber,
+                                  user.name,
                                   style: Theme.of(
                                     context,
                                   ).textTheme.bodyLarge!.copyWith(fontSize: 20),
@@ -180,43 +170,10 @@ class More extends ConsumerWidget {
                           ),
                         ),
                         Spacer(),
-                        GestureDetector(
-                          onTap: () async {
-                            try {
-                              final qrData =
-                                  'tel:*182*1*1*${removeCountryCode(user.momoPhoneNumber)}#';
-                              final qrFilePath =
-                                  await QRCodeService.generateQRCodeImage(qrData);
-                              showBottomSheet(context, qrFilePath);
-                            } catch (e) {
-                              print('More: Error generating QR code: $e');
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error generating QR code')),
-                              );
-                            }
-                          },
-                          child: Stack(
-                            alignment: Alignment.centerLeft,
-                            children: [
-                              Container(
-                                  padding: EdgeInsets.all(10),
-                                  width: 90,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(12.0),
-                                    child: SizedBox(
-                                      height: 70,
-                                      width: 50,
-                                      child: Icon(Icons.qr_code, size: 34,),
-                                      // child: Image.asset(
-                                      //   'assets/qrcode.png',
-                                      //   fit: BoxFit.cover,
-                                      // ),
-                                    ),
-                                  ),
-                                ),
-                              
-                            ],
-                          ),
+                        CircleAvatar(
+                          radius: 36,
+                          backgroundColor: primaryColor.withOpacity(0.2),
+                          child: Icon(Icons.person, size: 36, color: primaryColor),
                         ),
                       ],
                     ),
@@ -439,79 +396,6 @@ Container(
     }
   }
 
-  void showBottomSheet(BuildContext context, String fileqrcode) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            top: 20,
-            left: 16,
-            right: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: SizedBox(
-            height: MediaQuery.sizeOf(context).height * 0.7,
-            width: double.infinity,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'MY MOMO QR CODE',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(width: 30),
-                    GestureDetector(
-                      onTap: () async {
-                        await shareQRCode(context, fileqrcode);
-                      },
-                      child: Container(
-                        width: 22,
-                        height: 23,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: kMainColor,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 5,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.share_outlined,
-                          color: kWhiteColor,
-                          size: 13,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                Image.file(
-                  File(fileqrcode),
-                  width: MediaQuery.sizeOf(context).width * 0.7,
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   void showAccountDeletionBottomSheet(BuildContext context, WidgetRef ref) {
     final user = ref.watch(userProvider)!;
     showModalBottomSheet(
@@ -547,17 +431,15 @@ Container(
               InkWell(
                 onTap: () async {
                   Navigator.pop(context);
-                  UserService.deleteUser(user.id);
-                  await LocalStorage.removeUser().then((v) {
-                    // Navigator.pushReplacement(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) {
-                    //       return const WelcomeScreen();
-                    //     },
-                    //   ),
-                    // );
-                  });
+                  await LocalStorage.removeToken();
+                  await LocalStorage.removeUser();
+                  ref.read(userProvider.notifier).setUser(null);
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const SigninSignup()),
+                      (route) => false,
+                    );
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 12.0),

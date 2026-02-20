@@ -1,336 +1,254 @@
-import 'dart:async';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:ryde_rw/screens/notifications.dart';
-import 'package:ryde_rw/components/widgets/tab_comp.dart';
-import '../home/find_pools.dart';
-import '../home/offer_pool.dart';
-import 'package:ryde_rw/service/notification_service.dart';
-import 'package:ryde_rw/service/offer_pool_service.dart';
-import 'package:ryde_rw/service/request_rider_service.dart';
-import 'package:ryde_rw/service/vehicle_service.dart';
+import 'package:ryde_rw/provider/current_location_provider.dart';
+import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
-import 'package:ryde_rw/provider/current_location_provider.dart';
 
 class Home extends ConsumerStatefulWidget {
   const Home({super.key});
 
   @override
-  HomeConsumerState createState() => HomeConsumerState();
+  ConsumerState<Home> createState() => _HomeState();
 }
 
-class HomeConsumerState extends ConsumerState<Home> {
-  final Completer<GoogleMapController> _mapController = Completer();
-  GoogleMapController? mapStyleController;
-  final scaffoldKey = GlobalKey<ScaffoldState>();
-  bool hasVehicle = false;
+class _HomeState extends ConsumerState<Home> {
+  final _pickupController = TextEditingController();
+  final _destinationController = TextEditingController();
+  double? _pickupLat, _pickupLng, _destLat, _destLng;
+  bool _loading = false;
+  String? _error;
 
   @override
-  Widget build(BuildContext context) {
+  void dispose() {
+    _pickupController.dispose();
+    _destinationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _useCurrentLocation() async {
     try {
-      final user = ref.watch(userProvider);
-
-      if (user == null) {
-        print('Home: User is null, showing loading screen');
-        return const Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Loading user data...'),
-              ],
-            ),
-          ),
-        );
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      _pickupLat = pos.latitude;
+      _pickupLng = pos.longitude;
+      final placemarks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+      final p = placemarks.isNotEmpty ? placemarks.first : null;
+      final addr = p != null ? '${p.street}, ${p.locality}, ${p.country}' : 'Current location';
+      if (mounted) {
+        setState(() {
+          _pickupController.text = addr;
+          _error = null;
+        });
       }
-
-      print('Home: User loaded successfully: ${user.id}');
-
-      final vehicleAsyncValue = ref.watch(VehicleService.vehicleStream(user.id));
-      hasVehicle = vehicleAsyncValue.value != null;
-      print('Home: Vehicle status - hasVehicle: $hasVehicle');
-
-      final notificationsStream = ref.watch(
-        NotificationService.userNotificationStream,
-      );
-      
-      final notifications = notificationsStream.value ?? [];
-      final isNotified = notifications.where((e) => !e.isRead).isNotEmpty;
-      final tabsLength = hasVehicle ? 2 : 1;
-      print('Home: Notifications loaded - count: ${notifications.length}, unread: $isNotified');
-
-      final diplayDriverNearYouStream = ref.watch(
-        OfferPoolService.diplayDriverNearYou,
-      );
-      final diplayPassengerNearYouStream = ref.watch(
-        RequestRideService.diplayPassengerNearYou,
-      );
-
-      final isLoading =
-          diplayDriverNearYouStream.isLoading ||
-          diplayPassengerNearYouStream.isLoading;
-      final driverNearYou = diplayDriverNearYouStream.value ?? [];
-      final passengerNearYou = diplayPassengerNearYouStream.value ?? [];
-      print('Home: Nearby data - drivers: ${driverNearYou.length}, passengers: ${passengerNearYou.length}');
-
-      if (isLoading) {
-        print('Home: Still loading nearby data');
-        return Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Loading nearby rides...'),
-              ],
-            ),
-          ),
-        );
-      }
-
-      print('Home: Rendering main UI with tabsLength: $tabsLength');
-      return DefaultTabController(
-        length: tabsLength,
-        child: Scaffold(
-          key: scaffoldKey,
-          extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 10),
-                child: Stack(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        try {
-                          scaffoldKey.currentState?.openEndDrawer();
-                        } catch (e) {
-                          print('Home: Error opening drawer: $e');
-                        }
-                      },
-                      child: Container(
-                        height: 45,
-                        width: 45,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.notifications_none_rounded,
-                          size: 30,
-                          color: Colors.black45,
-                        ),
-                      ),
-                    ),
-                    if (isNotified)
-                      Positioned(
-                        top: 8,
-                        right: 4,
-                        child: Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: kMainColor,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        endDrawer: Notifications(
-          onDelete: () async {
-            Navigator.pop(context);
-            await NotificationService.deleteAllNotifications(notifications);
-          },
-        ),
-        onEndDrawerChanged: (isOpened) async {
-          if (!isOpened) {
-            final ids = notifications
-                .where((e) => !e.isRead)
-                .map((item) => item.id)
-                .toList();
-            await NotificationService.readNotifications(ids);
-          }
-        },
-        body: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            _buildGoogleMap(ref, driverNearYou, passengerNearYou, hasVehicle),
-            
-            DraggableScrollableSheet(
-              initialChildSize: 0.2,
-              minChildSize: 0.2,
-              maxChildSize: 0.45,
-              builder: (context, scrollController) {
-                return SingleChildScrollView(
-                  controller: scrollController,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: primaryColor,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(0),
-                        topRight: Radius.circular(0),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        
-                        Container(
-                          margin: EdgeInsets.symmetric(vertical: 12),
-                          height: 4,
-                          width: 100,
-                          decoration: BoxDecoration(
-                            color: kWhiteColor.withAlpha(90),
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        Container(
-                          height: 50,
-                          margin: EdgeInsets.symmetric(
-                            vertical: 6,
-                            horizontal: 20,
-                          ),
-                          width: double.infinity,
-                          padding: EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Color(0xff000000), //Color(0xff3FD390),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: TabBar(
-                            indicator: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            indicatorSize: TabBarIndicatorSize.tab,
-                            dividerColor: Colors.transparent,
-                            labelColor: kMainColor,
-                            unselectedLabelColor: kWhiteColor,
-                            tabs: [
-                              Tabcomp(icon: Icons.drive_eta, text: "Get a Ride"),
-                              // if (hasVehicle)
-                              //   Tabcomp(
-                              //     icon: Icons.escalator_warning_outlined,
-                              //     text: "Set a Route",
-                              //   ),
-                            ],
-                          ),
-                        ),
-                        // Tab content
-                        Container(
-                          height: 250,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(20),
-                              topRight: Radius.circular(20),
-                            ),
-                          ),
-                          child: TabBarView(
-                            children: [FindPool(), if (hasVehicle) OfferPool()],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),),
-      );
-    } catch (e, stackTrace) {
-      print('Home: Critical error in build method: $e');
-      print('Stack trace: $stackTrace');
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.red),
-              SizedBox(height: 16),
-              Text('Something went wrong'),
-              SizedBox(height: 8),
-              Text('Error: ${e.toString()}', style: TextStyle(fontSize: 12)),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {});
-                },
-                child: Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      );
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Could not get location');
     }
   }
 
-  Widget _buildGoogleMap(
-    WidgetRef ref,
-    List<dynamic> driverNearYou,
-    List<dynamic> passengerNearYou,
-    bool hasVehicle,
-  ) {
-    final currentLocationAsync = ref.watch(currentLocationProvider);
-    
-    return currentLocationAsync.when(
-      data: (currentLocation) {
-        Set<Marker> markers = {};
+  double _haversine(double lat1, double lon1, double lat2, double lon2) {
+    const R = 6371.0;
+    final dLat = (lat2 - lat1) * pi / 180;
+    final dLon = (lon2 - lon1) * pi / 180;
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1 * pi / 180) * cos(lat2 * pi / 180) * sin(dLon / 2) * sin(dLon / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return R * c;
+  }
 
-        return GoogleMap(
-          mapType: MapType.normal,
-          initialCameraPosition: CameraPosition(
-            target: currentLocation,
-            zoom: 15.0,
-          ),
-          onMapCreated: (controller) async {
-            _mapController.complete(controller);
-          },
-          markers: markers,
-          myLocationEnabled: true,
-          myLocationButtonEnabled: true,
-          zoomControlsEnabled: true,
-          zoomGesturesEnabled: true,
-          scrollGesturesEnabled: true,
-          rotateGesturesEnabled: true,
-          tiltGesturesEnabled: true,
-          compassEnabled: true,
-          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-            Factory<PanGestureRecognizer>(() => PanGestureRecognizer()),
-            Factory<ScaleGestureRecognizer>(() => ScaleGestureRecognizer()),
-            Factory<TapGestureRecognizer>(() => TapGestureRecognizer()),
-            Factory<VerticalDragGestureRecognizer>(
-              () => VerticalDragGestureRecognizer(),
-            ),
-          },
+  int _estimateFare(double km) {
+    if (km <= 1) return 1500;
+    if (km <= 30) return 1500 + ((km - 1) * 900).round();
+    return 1500 + (29 * 900) + ((km - 30) * 700).round();
+  }
+
+  Future<void> _requestTrip() async {
+    final user = ref.read(userProvider);
+    if (user == null) return;
+    if (user.userType != 'PASSENGER') {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only passengers can request a trip')),
+      );
+      return;
+    }
+    if (_pickupLat == null || _pickupLng == null) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Set pickup location (use current or enter address)')),
+      );
+      return;
+    }
+    String destAddress = _destinationController.text.trim();
+    if (destAddress.isEmpty) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter destination address')),
+      );
+      return;
+    }
+    setState(() { _loading = true; _error = null; });
+    try {
+      final destList = await locationFromAddress(destAddress);
+      if (destList.isEmpty) {
+        if (mounted) setState(() { _loading = false; _error = 'Destination not found'; });
+        return;
+      }
+      _destLat = destList.first.latitude;
+      _destLng = destList.first.longitude;
+      final distance = _haversine(_pickupLat!, _pickupLng!, _destLat!, _destLng!);
+      final fare = _estimateFare(distance);
+      await ApiService.requestTrip({
+        'pickupLatitude': _pickupLat,
+        'pickupLongitude': _pickupLng,
+        'pickupAddress': _pickupController.text.trim(),
+        'destinationLatitude': _destLat,
+        'destinationLongitude': _destLng,
+        'destinationAddress': destAddress,
+        'distance': distance,
+        'fare': fare.toDouble(),
+      });
+      if (mounted) {
+        setState(() => _loading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Trip requested successfully')),
         );
-      },
-      loading: () => Container(
-        color: Colors.grey[300],
-        child: Center(
-          child: CircularProgressIndicator(),
+        _destinationController.clear();
+      }
+    } catch (e) {
+      if (mounted) setState(() {
+        _loading = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = ref.watch(userProvider);
+    final locationAsync = ref.watch(currentLocationProvider);
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      body: locationAsync.when(
+        data: (latLng) => Stack(
+          children: [
+            GoogleMap(
+              initialCameraPosition: CameraPosition(target: latLng, zoom: 14),
+              markers: {
+                if (_pickupLat != null && _pickupLng != null)
+                  Marker(
+                    markerId: const MarkerId('pickup'),
+                    position: LatLng(_pickupLat!, _pickupLng!),
+                  ),
+                if (_destLat != null && _destLng != null)
+                  Marker(
+                    markerId: const MarkerId('dest'),
+                    position: LatLng(_destLat!, _destLng!),
+                  ),
+              },
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+            ),
+            SafeArea(
+              child: DraggableScrollableSheet(
+                initialChildSize: 0.35,
+                minChildSize: 0.2,
+                maxChildSize: 0.6,
+                builder: (context, scrollController) => Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      const SizedBox(height: 8),
+                      Text(
+                        user.isPassenger ? 'Book a ride' : 'Your trips',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      if (user.isPassenger) ...[
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _pickupController,
+                          decoration: InputDecoration(
+                            labelText: 'Pickup',
+                            border: const OutlineInputBorder(),
+                            suffixIcon: IconButton(
+                              icon: const Icon(Icons.my_location),
+                              onPressed: _useCurrentLocation,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _destinationController,
+                          decoration: const InputDecoration(
+                            labelText: 'Destination',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 8),
+                          Text(_error!, style: const TextStyle(color: Colors.red)),
+                        ],
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _loading ? null : _requestTrip,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: _loading
+                                ? const SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Text('Request trip'),
+                          ),
+                        ),
+                      ] else
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Text(
+                            'Open Trips tab to see and accept ride requests.',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ),
-      error: (error, stack) => Container(
-        color: Colors.grey[300],
-        child: Center(
-          child: Text('Error loading map: $error'),
+        loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+        error: (e, _) => Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Location error: $e'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => ref.invalidate(currentLocationProvider),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
-
