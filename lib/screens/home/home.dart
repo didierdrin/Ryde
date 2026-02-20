@@ -8,6 +8,7 @@ import 'package:ryde_rw/provider/current_location_provider.dart';
 import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
+import 'package:ryde_rw/utils/contants.dart';
 
 class Home extends ConsumerStatefulWidget {
   const Home({super.key});
@@ -96,7 +97,11 @@ class _HomeState extends ConsumerState<Home> {
       }
       _destLat = destList.first.latitude;
       _destLng = destList.first.longitude;
-      final distance = _haversine(_pickupLat!, _pickupLng!, _destLat!, _destLng!);
+      // Prefer Google Directions driving distance; fallback to haversine
+      double distance = (await ApiService.getRouteDistanceKm(
+        _pickupLat!, _pickupLng!, _destLat!, _destLng!,
+        googleMapsApiKey: apiKey,
+      )) ?? _haversine(_pickupLat!, _pickupLng!, _destLat!, _destLng!);
       final fare = _estimateFare(distance);
       await ApiService.requestTrip({
         'pickupLatitude': _pickupLat,
@@ -123,6 +128,9 @@ class _HomeState extends ConsumerState<Home> {
     }
   }
 
+  // Kigali, Rwanda
+  static const LatLng _kigaliCenter = LatLng(-1.9441, 30.0619);
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider);
@@ -136,10 +144,13 @@ class _HomeState extends ConsumerState<Home> {
 
     return Scaffold(
       body: locationAsync.when(
-        data: (latLng) => Stack(
+        data: (_) => Stack(
           children: [
             GoogleMap(
-              initialCameraPosition: CameraPosition(target: latLng, zoom: 14),
+              initialCameraPosition: const CameraPosition(
+                target: _kigaliCenter,
+                zoom: 14,
+              ),
               markers: {
                 if (_pickupLat != null && _pickupLng != null)
                   Marker(
@@ -159,7 +170,7 @@ class _HomeState extends ConsumerState<Home> {
               child: DraggableScrollableSheet(
                 initialChildSize: 0.35,
                 minChildSize: 0.2,
-                maxChildSize: 0.6,
+                maxChildSize: 0.5,
                 builder: (context, scrollController) => Container(
                   decoration: const BoxDecoration(
                     color: Colors.white,
@@ -214,7 +225,7 @@ class _HomeState extends ConsumerState<Home> {
                                     width: 22,
                                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                   )
-                                : const Text('Request trip'),
+                                : const Text('Request trip', style: TextStyle(color: Colors.white),),
                           ),
                         ),
                       ] else
@@ -232,7 +243,19 @@ class _HomeState extends ConsumerState<Home> {
             ),
           ],
         ),
-        loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+        loading: () => Stack(
+          children: [
+            GoogleMap(
+              initialCameraPosition: const CameraPosition(
+                target: _kigaliCenter,
+                zoom: 14,
+              ),
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+            ),
+            const Center(child: CircularProgressIndicator()),
+          ],
+        ),
         error: (e, _) => Scaffold(
           body: Center(
             child: Column(

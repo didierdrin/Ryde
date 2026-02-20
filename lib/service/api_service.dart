@@ -10,6 +10,38 @@ class ApiService {
     return await LocalStorage.getToken();
   }
 
+  /// Get driving distance in km via Google Directions API. Returns null if key is missing or request fails.
+  static Future<double?> getRouteDistanceKm(
+    double originLat, double originLng,
+    double destLat, double destLng,
+    {String? googleMapsApiKey}
+  ) async {
+    if (googleMapsApiKey == null || googleMapsApiKey.isEmpty) return null;
+    try {
+      final uri = Uri.parse(
+        'https://maps.googleapis.com/maps/api/directions/json'
+        '?origin=$originLat,$originLng'
+        '&destination=$destLat,$destLng'
+        '&key=$googleMapsApiKey'
+      );
+      final response = await http.get(uri);
+      if (response.statusCode != 200) return null;
+      final data = json.decode(response.body) as Map<String, dynamic>?;
+      if (data == null || data['status'] != 'OK') return null;
+      final routes = data['routes'] as List<dynamic>?;
+      if (routes == null || routes.isEmpty) return null;
+      final legs = (routes.first as Map<String, dynamic>)['legs'] as List<dynamic>?;
+      if (legs == null || legs.isEmpty) return null;
+      final distance = (legs.first as Map<String, dynamic>)['distance'] as Map<String, dynamic>?;
+      if (distance == null) return null;
+      final meters = (distance['value'] as num?)?.toDouble();
+      if (meters == null) return null;
+      return meters / 1000.0;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<Map<String, String>> _getHeaders() async {
     final token = await getToken();
     return {
@@ -19,13 +51,16 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> _handleResponse(http.Response response) async {
-    final body = json.decode(response.body);
+    final body = response.body.isNotEmpty
+        ? (json.decode(response.body) as Map<String, dynamic>? ?? {})
+        : <String, dynamic>{};
     
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
-    } else {
-      throw Exception(body['error'] ?? 'Request failed');
     }
+    final err = body['error']?.toString() ?? 'Request failed';
+    final details = body['details']?.toString();
+    throw Exception(details != null && details.isNotEmpty ? '$err: $details' : err);
   }
 
   // Auth endpoints
