@@ -1,5 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ryde_rw/theme/colors.dart';
@@ -192,7 +192,7 @@ class DriverCustomListItem extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            formatTime(time!),
+                            formatTime(time!.toDate()),
                             style: TextStyle(color: Colors.black, fontSize: 10),
                           ),
                         ],

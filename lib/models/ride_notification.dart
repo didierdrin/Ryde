@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 
 class RideNotification {
   final String id;
@@ -23,16 +23,25 @@ class RideNotification {
     required this.requiresResponse,
   });
 
+  static DateTime _parseDateTime(dynamic v) {
+    if (v == null) return DateTime.now();
+    if (v is DateTime) return v;
+    if (v is Timestamp) return v.toDate();
+    if (v is Map && v['_seconds'] != null) return DateTime.fromMillisecondsSinceEpoch((v['_seconds'] as int) * 1000);
+    if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+    return DateTime.now();
+  }
+
   factory RideNotification.fromJson(Map<String, dynamic> json, String id) {
     return RideNotification(
       id: id,
-      recipientId: json['recipient_id'],
-      title: json['title'],
-      body: json['body'],
-      data: json['data'],
-      type: json['type'],
+      recipientId: json['recipient_id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      body: json['body']?.toString() ?? '',
+      data: json['data'] is Map ? Map<String, dynamic>.from(json['data'] as Map) : {},
+      type: json['type']?.toString() ?? '',
       isRead: json['is_read'] ?? false,
-      createdAt: (json['created_at'] as Timestamp).toDate(),
+      createdAt: _parseDateTime(json['created_at']),
       requiresResponse: json['requires_response'] ?? false,
     );
   }

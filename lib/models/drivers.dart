@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 
 class Driver {
   final String driverId;
@@ -28,11 +28,11 @@ class Driver {
       driverId: map['driver_id'] ?? '',
       name: map['name'] ?? '',
       currentLocationAddress: map['current_location_address'] ?? '',
-      currentLocationGps: map['current_location_gps'] ?? GeoPoint(0, 0),
+      currentLocationGps: GeoPoint.fromDynamic(map['current_location_gps']),
       startingPoint: map['starting_point'] ?? '',
-      startingPointGps: map['starting_point_gps'] ?? GeoPoint(0, 0),
+      startingPointGps: GeoPoint.fromDynamic(map['starting_point_gps']),
       endPoint: map['end_point'] ?? '',
-      endPointGps: map['end_point_gps'] ?? GeoPoint(0, 0),
+      endPointGps: GeoPoint.fromDynamic(map['end_point_gps']),
     );
   }
 

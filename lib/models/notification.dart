@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 
 class UserNotification {
   final String id;
@@ -19,6 +19,15 @@ class UserNotification {
     required this.createdAt,
   });
 
+  static DateTime _parseDateTime(dynamic v) {
+    if (v == null) return DateTime.now();
+    if (v is DateTime) return v;
+    if (v is Timestamp) return v.toDate();
+    if (v is Map && v['_seconds'] != null) return DateTime.fromMillisecondsSinceEpoch((v['_seconds'] as int) * 1000);
+    if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+    return DateTime.now();
+  }
+
   factory UserNotification.fromJson(Map<String, dynamic> json, String id) {
     return UserNotification(
       id: id,
@@ -26,8 +35,8 @@ class UserNotification {
       body: json['body'] ?? '',
       userId: json['user_id'] ?? '',
       isRead: json['isRead'] ?? false,
-      data: json['data'] ?? {},
-      createdAt: (json['created_at'] as Timestamp).toDate(),
+      data: json['data'] is Map ? Map<String, dynamic>.from(json['data'] as Map) : {},
+      createdAt: _parseDateTime(json['created_at']),
     );
   }
 

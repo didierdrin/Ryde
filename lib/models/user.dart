@@ -58,7 +58,9 @@ class User {
       ? phoneNumber.substring(0, 4)
       : '+250';
   int get walletBalance => 0;
+  String get profilePicture => '';
   DateTime get joinedOn => DateTime.now();
+  List<dynamic> get tokens => [];
 
   @override
   String toString() => 'User(id=$id, userType=$userType)';

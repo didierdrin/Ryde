@@ -10,6 +10,7 @@ import 'package:ryde_rw/service/location_service.dart';
 import 'package:ryde_rw/service/offer_pool_service.dart';
 import 'package:ryde_rw/service/user_service.dart';
 import 'package:ryde_rw/shared/locations_shared.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -77,7 +78,7 @@ class FindingExistingTrip extends ConsumerWidget {
     // final region = ref.read(regionProvider);
 
     final offerdatasfilter = offerPools.where((e) {
-      final checkNow = e.dateTime.toDate();
+      final checkNow = e.dateTime;
       final truncatedCheckNow = DateTime(
         checkNow.year,
         checkNow.month,
@@ -158,7 +159,7 @@ class FindingExistingTrip extends ConsumerWidget {
               index: index,
               icons: [Icons.drive_eta, Icons.account_circle],
               destination: pool.dropoffLocation.address,
-              time: pool.dateTime,
+              time: Timestamp.fromDate(pool.dateTime),
               onTap: () {
                 Navigator.push(
                   context,
@@ -190,7 +191,7 @@ class FindingExistingTrip extends ConsumerWidget {
                   _launchGoogleMaps(
                     userLat: requesterLocation.latitude,
                     userLng: requesterLocation.longitude,
-                    waypoints: waypoints,
+                    waypoints: waypoints.whereType<Location>().toList(),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(

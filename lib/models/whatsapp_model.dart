@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:ryde_rw/models/request_model.dart';
 import 'package:ryde_rw/shared/locations_shared.dart';
 
@@ -80,7 +80,7 @@ class WhatsappModel {
       rider: map['rider'] ?? '',
       pickupLocation: Location.fromMap(map['pickupLocation']),
       dropoffLocation: Location.fromMap(map['dropoffLocation']),
-      requestedTime: map['requestedTime'] ?? Timestamp.now,
+      requestedTime: map['requestedTime'] ?? Timestamp.now(),
       requestedBy: map['requestedBy'] ?? '',
       offerpool: map['offerpool'],
       createdAt: map['createdAt'] ?? Timestamp.now(),

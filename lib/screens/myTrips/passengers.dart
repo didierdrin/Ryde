@@ -30,7 +30,7 @@ class _PassengersState extends ConsumerState<PassengersPool> {
     final users = userStreams.value ?? [];
 
     final passrngessLocationNear = findingPassenger.where((location) {
-      final checkRequestDate = location.createdAt!.toDate();
+      final checkRequestDate = location.createdAt!;
       final now = DateTime.now();
       final truncatedNow = truncateToDate(now);
       final truncatedRequestDate = truncateToDate(checkRequestDate);

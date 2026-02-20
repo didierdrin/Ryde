@@ -1,12 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:ryde_rw/models/offer_pool_model.dart';
 import 'package:ryde_rw/models/request_model.dart';
 import 'package:ryde_rw/screens/chats/chat_page.dart';
-import 'package:ryde_rw/service/chat_service.dart';
 import 'package:ryde_rw/service/location_service.dart';
 import 'package:ryde_rw/service/messages_service.dart';
 import 'package:ryde_rw/service/offer_pool_service.dart';
@@ -461,21 +459,17 @@ class PoolRejectAccept extends ConsumerWidget {
                       ),
                       SizedBox(width: 10),
                       GestureDetector(
-                        onTap: () async {
-                          final currentUser = FirebaseAuth.instance.currentUser;
-                          if (currentUser == null) return;
-
-                          final chatId = await ChatService.getOrCreateChat(
-                            currentUser.uid,
-                            offer.requestedBy,
-                          );
-
+                        onTap: () {
+                          final user = ref.read(userProvider);
+                          if (user == null) return;
+                          final tripId = offerPoo.id ?? '';
+                          if (tripId.isEmpty) return;
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => ChatPage(
-                                chatId: chatId,
-                                otherUserId: offer.requestedBy,
+                                tripId: tripId,
+                                otherPartyName: offer.requestedBy,
                               ),
                             ),
                           );
@@ -531,21 +525,17 @@ class PoolRejectAccept extends ConsumerWidget {
                       ),
                       SizedBox(width: 10),
                       GestureDetector(
-                        onTap: () async {
-                          final currentUser = FirebaseAuth.instance.currentUser;
-                          if (currentUser == null) return;
-
-                          final chatId = await ChatService.getOrCreateChat(
-                            currentUser.uid,
-                            offer.requestedBy,
-                          );
-
+                        onTap: () {
+                          final user = ref.read(userProvider);
+                          if (user == null) return;
+                          final tripId = offerPoo.id ?? '';
+                          if (tripId.isEmpty) return;
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => ChatPage(
-                                chatId: chatId,
-                                otherUserId: offer.requestedBy,
+                                tripId: tripId,
+                                otherPartyName: offer.requestedBy,
                               ),
                             ),
                           );

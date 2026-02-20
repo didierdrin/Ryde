@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:flutter/material.dart';
 
 import 'package:ryde_rw/models/request_model.dart';
@@ -51,7 +51,7 @@ class MessengerService {
 The passenger has cancelled the trip.
 From: ${passenger.pickupLocation.address}
 To: ${passenger.dropoffLocation.address}
-Time: ${DateFormat('MMM dd, yyyy HH:mm').format(passenger.requestedTime.toDate())}
+Time: ${DateFormat('MMM dd, yyyy HH:mm').format(passenger.requestedTime)}
 ''',
       'isRead': false,
       'data': {
@@ -61,7 +61,7 @@ Time: ${DateFormat('MMM dd, yyyy HH:mm').format(passenger.requestedTime.toDate()
         'cancelled_by': passenger.requestedBy,
         'pickup_location': passenger.pickupLocation.address,
         'dropoff_location': passenger.dropoffLocation.address,
-        'trip_time': passenger.requestedTime.toDate().toString(),
+        'trip_time': passenger.requestedTime.toString(),
       },
       'createdAt': Timestamp.now(),
     });
@@ -78,7 +78,7 @@ Time: ${DateFormat('MMM dd, yyyy HH:mm').format(passenger.requestedTime.toDate()
 A passenger wants to join your trip:
 From: ${request.pickupLocation.address}
 To: ${request.dropoffLocation.address}
-🕒 ${DateFormat('MMM dd, yyyy HH:mm').format(request.requestedTime.toDate())}
+🕒 ${DateFormat('MMM dd, yyyy HH:mm').format(request.requestedTime)}
 👥 ${request.seats} seats requested
 
 Tap to view details''',
@@ -89,7 +89,7 @@ Tap to view details''',
         'passenger_id': request.requestedBy,
         'pickup_location': request.pickupLocation.address,
         'dropoff_location': request.dropoffLocation.address,
-        'trip_time': request.requestedTime.toDate().toString(),
+        'trip_time': request.requestedTime.toString(),
         'seats': request.seats,
         'price': request.price,
         'action_required': true,
@@ -109,7 +109,7 @@ Tap to view details''',
 A driver wants to take your trip:
 From: ${request.pickupLocation.address}
 To: ${request.dropoffLocation.address}
-🕒 ${DateFormat('MMM dd, yyyy HH:mm').format(request.requestedTime.toDate())}
+🕒 ${DateFormat('MMM dd, yyyy HH:mm').format(request.requestedTime)}
 💰 ${request.price} per seat
 
 Tap to view details''',
@@ -120,7 +120,7 @@ Tap to view details''',
         'driver_id': request.rider,
         'pickup_location': request.pickupLocation.address,
         'dropoff_location': request.dropoffLocation.address,
-        'trip_time': request.requestedTime.toDate().toString(),
+        'trip_time': request.requestedTime.toString(),
         'price': request.price,
         'action_required': true,
       },

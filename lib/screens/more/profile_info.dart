@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
@@ -124,7 +124,7 @@ class ProfileInfoState extends ConsumerState<ProfileInfo> {
         hobbies: hobbiesController.text,
         governmentIdUrl: governmentIdUrl,
         drivingLicenseUrl: drivingLicenseUrl,
-        updatedAt: Timestamp.now(),
+        updatedAt: DateTime.now(),
       );
 
       await ProfilesInfoService.saveOrUpdateProfiles(profileInfo, ref);

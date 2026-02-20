@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 
 class UserOrder {
   final String orderId;
@@ -28,9 +28,9 @@ class UserOrder {
       orderId: map['order_id'] ?? '',
       parcelType: map['parcel_type'] ?? '',
       pickupAddress: map['pickup_address'] ?? '',
-      pickupGps: map['pickup_gps'] ?? GeoPoint(0, 0), // Default GeoPoint if null
+      pickupGps: GeoPoint.fromDynamic(map['pickup_gps']),
       dropoffAddress: map['dropoff_address'] ?? '',
-      dropoffGps: map['dropoff_gps'] ?? GeoPoint(0, 0), // Default GeoPoint if null
+      dropoffGps: GeoPoint.fromDynamic(map['dropoff_gps']),
       receiverName: map['receiver_name'] ?? '',
       receiverPhone: map['receiver_phone'] ?? '',
     );

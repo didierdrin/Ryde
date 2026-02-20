@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -241,8 +241,8 @@ class PoolerInfoConsumerState extends ConsumerState<PoolerInfo> {
         requestedBy: user.id,
         pickupLocation: widget.offer.pickupLocation,
         dropoffLocation: widget.offer.dropoffLocation,
-        requestedTime: Timestamp.now(),
-        createdAt: Timestamp.now(),
+        requestedTime: DateTime.now(),
+        createdAt: DateTime.now(),
         rejected: false,
         accepted: false,
         type: widget.type,

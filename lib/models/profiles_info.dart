@@ -1,13 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-
 class ProfileInformation {
   final String userId;
   final String shortBio;
   final String hobbies;
   final String? governmentIdUrl;
   final String? drivingLicenseUrl;
-  final Timestamp updatedAt;
+  final DateTime updatedAt;
 
   ProfileInformation({
     required this.userId,
@@ -20,13 +17,21 @@ class ProfileInformation {
 
   factory ProfileInformation.fromJSON(Map<String, dynamic> doc) {
     return ProfileInformation(
-      userId: doc['userId'],
+      userId: doc['userId'] ?? '',
       shortBio: doc['shortBio'] ?? '',
       hobbies: doc['hobbies'] ?? '',
       governmentIdUrl: doc['governmentIdUrl'],
       drivingLicenseUrl: doc['drivingLicenseUrl'],
-      updatedAt: doc['updatedAt'] ?? Timestamp.now(),
+      updatedAt: _parseDateTime(doc['updatedAt']) ?? DateTime.now(),
     );
+  }
+
+  static DateTime? _parseDateTime(dynamic v) {
+    if (v == null) return null;
+    if (v is DateTime) return v;
+    if (v is Map && v['_seconds'] != null) return DateTime.fromMillisecondsSinceEpoch((v['_seconds'] as int) * 1000);
+    if (v is String) return DateTime.tryParse(v);
+    return null;
   }
 
   Map<String, dynamic> toMap() {
@@ -36,8 +41,7 @@ class ProfileInformation {
       'hobbies': hobbies,
       'governmentIdUrl': governmentIdUrl,
       'drivingLicenseUrl': drivingLicenseUrl,
-      'updatedAt': updatedAt,
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 }
-

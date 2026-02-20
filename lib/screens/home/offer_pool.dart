@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -132,7 +132,7 @@ class OfferPoolState extends ConsumerState<OfferPool> {
       final offerpool = PassengerOfferPool(
         pickupLocation: pickup!,
         dropoffLocation: dropOff!,
-        dateTime: dateTime,
+        dateTime: dateTime is Timestamp ? dateTime.toDate() : dateTime as DateTime,
         selectedSeat: 1,
         pricePerSeat: price,
         user: user.id,

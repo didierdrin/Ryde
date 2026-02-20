@@ -65,7 +65,7 @@ class MyRidesTab extends ConsumerWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  ride.requestedTime.toDate().toString().substring(0, 16),
+                                  ride.requestedTime.toString().substring(0, 16),
                                   style: Theme.of(context).textTheme.bodyLarge!.copyWith(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.bold,

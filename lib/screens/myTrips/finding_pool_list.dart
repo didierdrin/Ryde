@@ -84,11 +84,15 @@ class FindingTabState extends ConsumerState<FindingTab> {
     }).toList();
     
     requestUser.sort(
-      (a, b) => b.requestedTime.toDate().compareTo(a.requestedTime.toDate()),
+      (a, b) => b.requestedTime.compareTo(a.requestedTime),
     );
     
     userRideOrders.sort(
-      (a, b) => b.createdAt.toDate().compareTo(a.createdAt.toDate()),
+      (a, b) {
+        final DateTime ad = (a.createdAt as DateTime?) ?? DateTime(0);
+        final DateTime bd = (b.createdAt as DateTime?) ?? DateTime(0);
+        return bd.compareTo(ad);
+      },
     );
 
     return ModalProgressHUD(
@@ -229,7 +233,7 @@ class FindingTabState extends ConsumerState<FindingTab> {
                     );
 
                     final locationfou = locationfoundValue.where((location) {
-                      final checkRequestDate = location.dateTime.toDate();
+                      final checkRequestDate = location.dateTime;
                       final now = DateTime.now();
                       final truncatedNow = truncateToDate(now);
                       final truncatedRequestDate = truncateToDate(

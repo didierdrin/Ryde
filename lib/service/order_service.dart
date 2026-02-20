@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:ryde_rw/models/orders.dart';
 import 'package:ryde_rw/models/ride_order.dart';
 

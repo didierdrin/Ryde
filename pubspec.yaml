@@ -68,6 +68,7 @@ dependencies:
   iconify_design: ^1.0.1
   new_version_plus: ^0.1.1
   timeago: ^3.7.1
+  flutter_local_notifications: ^20.1.0
 
 dev_dependencies:
   flutter_test:

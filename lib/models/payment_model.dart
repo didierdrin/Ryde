@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 
 class Payment {
   final double amount;
@@ -31,8 +31,16 @@ class Payment {
     required this.timestamp,
   });
 
+  static Timestamp _parseTimestamp(dynamic v) {
+    if (v == null) return Timestamp.now();
+    if (v is Timestamp) return v;
+    if (v is DateTime) return Timestamp.fromDate(v);
+    if (v is Map && v['_seconds'] != null) return Timestamp.fromDate(DateTime.fromMillisecondsSinceEpoch((v['_seconds'] as int) * 1000));
+    return Timestamp.now();
+  }
+
   factory Payment.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    Map<String, dynamic> data = doc.data();
 
     return Payment(
       amount: (data['amount'] as num?)?.toDouble() ?? 0.0,
@@ -47,7 +55,7 @@ class Payment {
       paymentId: data['paymentId']?.toString() ?? '',
       currency: data['currency']?.toString() ?? 'Unknown',
       status: data['status']?.toString() ?? 'unknown',
-      timestamp: data['timestamp'] as Timestamp? ?? Timestamp.now(),
+      timestamp: _parseTimestamp(data['timestamp']),
     );
   }
 }

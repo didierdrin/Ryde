@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ryde_rw/models/offer_pool_model.dart';
@@ -9,6 +9,15 @@ import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/utils/contants.dart';
 import 'package:ryde_rw/utils/utils.dart';
 import 'package:ryde_rw/service/notification_service.dart';
+
+DateTime _dateTimeFromDynamic(dynamic v) {
+  if (v == null) return DateTime.now();
+  if (v is DateTime) return v;
+  if (v is Timestamp) return v.toDate();
+  if (v is Map && v['_seconds'] != null) return DateTime.fromMillisecondsSinceEpoch((v['_seconds'] as int) * 1000);
+  if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+  return DateTime.now();
+}
 
 class OfferPoolService {
   static final collection = collections.offerpool;
@@ -433,7 +442,7 @@ class OfferPoolService {
           'type': 'trip_accepted',
           'pickup_location': request.pickupLocation.address,
           'dropoff_location': request.dropoffLocation.address,
-          'trip_time': request.requestedTime.toDate().toString(),
+          'trip_time': request.requestedTime.toString(),
           'action_required': false,
           'price': request.price,
           'seats': request.seats,
@@ -509,9 +518,7 @@ class OfferPoolService {
               : requestData['requestedBy'],
           'pickup_location': requestData['pickupLocation']['address'],
           'dropoff_location': requestData['dropoffLocation']['address'],
-          'trip_time': (requestData['requestedTime'] as Timestamp)
-              .toDate()
-              .toString(),
+          'trip_time': _dateTimeFromDynamic(requestData['requestedTime']).toString(),
           'action_required': false,
           'offerpool_id': requestData['offerpool'],
         },
@@ -569,9 +576,7 @@ class OfferPoolService {
           'cancelled_by': userId,
           'pickup_location': requestData['pickupLocation']['address'],
           'dropoff_location': requestData['dropoffLocation']['address'],
-          'trip_time': (requestData['requestedTime'] as Timestamp)
-              .toDate()
-              .toString(),
+          'trip_time': _dateTimeFromDynamic(requestData['requestedTime']).toString(),
           'action_required': false,
         },
       });

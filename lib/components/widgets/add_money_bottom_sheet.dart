@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -74,7 +74,7 @@ class AddMoneyBottomSheetState extends ConsumerState<AddMoneyBottomSheet> {
         'type': 'top-up',
         'status': TransactionStatus.pending.name,
         'user': user.id,
-        'date': Timestamp.now(),
+        'date': Timestamp.now().toDate(),
       });
       final url = Uri(
         scheme: 'tel',

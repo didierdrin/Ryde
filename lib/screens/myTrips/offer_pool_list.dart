@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
-import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
@@ -20,7 +19,7 @@ class OfferingTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.read(userProvider);
-    final currentUserEmail = auth.FirebaseAuth.instance.currentUser?.email;
+    final currentUserEmail = user?.email;
     print('=== OFFER_POOL_LIST DEBUG ===');
     print('User: ${user?.id}');
     print('Current User Email: $currentUserEmail');
@@ -61,10 +60,10 @@ class OfferingTab extends ConsumerWidget {
     print('=== END DEBUG ===');
     final limit = DateTime.now().subtract(Duration(hours: 5));
     final offerdatasfilter = offerdatas.where((offer) {
-      return offer.dateTime.toDate().isAfter(limit);
+      return offer.dateTime.isAfter(limit);
     }).toList();
     offerdatasfilter.sort(
-      (a, b) => b.dateTime.toDate().compareTo(a.dateTime.toDate()),
+      (a, b) => b.dateTime.compareTo(a.dateTime),
     );
 
     return ModalProgressHUD(

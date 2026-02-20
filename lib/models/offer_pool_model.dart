@@ -1,11 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ryde_rw/shared/locations_shared.dart';
 
 class PassengerOfferPool {
   final String? id;
   final Location pickupLocation;
   final Location dropoffLocation;
-  final Timestamp dateTime;
+  final DateTime dateTime;
   final int? selectedSeat;
   final int pricePerSeat;
   final String user;
@@ -44,7 +43,7 @@ class PassengerOfferPool {
     return {
       'pickupLocation': pickupLocation.toMap(),
       'dropoffLocation': dropoffLocation.toMap(),
-      'dateTime': dateTime,
+      'dateTime': dateTime.toIso8601String(),
       'selectedSeat': selectedSeat,
       'pricePerSeat': pricePerSeat,
       'user': user,
@@ -61,15 +60,23 @@ class PassengerOfferPool {
     };
   }
 
+  static DateTime _parseDateTime(dynamic v) {
+    if (v == null) return DateTime.now();
+    if (v is DateTime) return v;
+    if (v is Map && v['_seconds'] != null) return DateTime.fromMillisecondsSinceEpoch((v['_seconds'] as int) * 1000);
+    if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+    return DateTime.now();
+  }
+
   factory PassengerOfferPool.fromMap(Map<String, dynamic> map) {
     return PassengerOfferPool(
-      id: map['id'] ?? '',
-      pickupLocation: Location.fromMap(map['pickupLocation']),
-      dropoffLocation: Location.fromMap(map['dropoffLocation']),
-      dateTime: map['dateTime'],
+      id: map['id'],
+      pickupLocation: Location.fromMap(map['pickupLocation'] as Map<String, dynamic>),
+      dropoffLocation: Location.fromMap(map['dropoffLocation'] as Map<String, dynamic>),
+      dateTime: _parseDateTime(map['dateTime']),
       selectedSeat: map['selectedSeat'],
-      pricePerSeat: map['pricePerSeat'],
-      user: map['user'],
+      pricePerSeat: map['pricePerSeat'] ?? 0,
+      user: map['user'] ?? '',
       completed: map['completed'] ?? false,
       pending: map['pending'] ?? false,
       isSeatFull: map['isSeatFull'] ?? false,
@@ -77,9 +84,9 @@ class PassengerOfferPool {
       isRideStarted: map['isRideStarted'] ?? false,
       measure: map['measure'],
       quantity: map['quantity'],
-      type: map['type'],
+      type: map['type'] ?? '',
       countryCode: map['country_code'],
+      emptySeat: map['emptySeat'],
     );
   }
 }
-

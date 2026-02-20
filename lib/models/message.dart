@@ -1,3 +1,11 @@
+DateTime _parseTime(dynamic v) {
+  if (v == null) return DateTime.now();
+  if (v is DateTime) return v;
+  if (v is Map && v['_seconds'] != null) return DateTime.fromMillisecondsSinceEpoch((v['_seconds'] as int) * 1000);
+  if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+  return DateTime.now();
+}
+
 class Message {
   final String text, order, user, sender;
   final bool isRead;
@@ -19,7 +27,7 @@ class Message {
       user: data['user'],
       sender: data['sender'],
       isRead: data['isRead'],
-      time: data['time'].toDate(),
+      time: _parseTime(data['time']),
     );
   }
 }

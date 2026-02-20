@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -255,8 +255,8 @@ class DisplayAvailableDriverGoogleMapState
         requestedBy: user.id,
         pickupLocation: widget.ride.pickupLocation,
         dropoffLocation: widget.ride.dropoffLocation,
-        requestedTime: Timestamp.now(),
-        createdAt: Timestamp.now(),
+        requestedTime: DateTime.now(),
+        createdAt: DateTime.now(),
         rejected: false,
         accepted: false,
         type: widget.ride.type,
@@ -283,7 +283,7 @@ class DisplayAvailableDriverGoogleMapState
           'dropoff_location': widget.ride.dropoffLocation.address,
           'trip_time': DateFormat(
             'MMM dd, yyyy HH:mm',
-          ).format(widget.ride.dateTime.toDate()),
+          ).format(widget.ride.dateTime),
         },
         type: 'request',
       );

@@ -1,14 +1,21 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ryde_rw/shared/locations_shared.dart';
+
+DateTime _parseDateTime(dynamic v) {
+  if (v == null) return DateTime.now();
+  if (v is DateTime) return v;
+  if (v is Map && v['_seconds'] != null) return DateTime.fromMillisecondsSinceEpoch((v['_seconds'] as int) * 1000);
+  if (v is String) return DateTime.tryParse(v) ?? DateTime.now();
+  return DateTime.now();
+}
 
 class RequestRide {
   String? id;
   String rider;
   Location pickupLocation;
   Location dropoffLocation;
-  Timestamp requestedTime;
+  DateTime requestedTime;
   String requestedBy;
-  Timestamp? createdAt;
+  DateTime? createdAt;
   String offerpool;
   bool rejected;
   bool accepted;
@@ -61,10 +68,10 @@ class RequestRide {
       'rider': rider,
       'pickupLocation': pickupLocation.toMap(),
       'dropoffLocation': dropoffLocation.toMap(),
-      'requestedTime': requestedTime,
+      'requestedTime': requestedTime.toIso8601String(),
       'requestedBy': requestedBy,
       'offerpool': offerpool,
-      'createdAt': createdAt,
+      'createdAt': createdAt?.toIso8601String(),
       'rejected': rejected,
       'accepted': accepted,
       'pickup': pickup,
@@ -87,14 +94,14 @@ class RequestRide {
 
   factory RequestRide.fromMap(Map<String, dynamic> map) {
     return RequestRide(
-      id: map['id'] ?? '',
+      id: map['id'],
       rider: map['rider'] ?? '',
-      pickupLocation: Location.fromMap(map['pickupLocation']),
-      dropoffLocation: Location.fromMap(map['dropoffLocation']),
-      requestedTime: map['requestedTime'] ?? Timestamp.now,
+      pickupLocation: Location.fromMap(map['pickupLocation'] as Map<String, dynamic>),
+      dropoffLocation: Location.fromMap(map['dropoffLocation'] as Map<String, dynamic>),
+      requestedTime: _parseDateTime(map['requestedTime']),
       requestedBy: map['requestedBy'] ?? '',
-      offerpool: map['offerpool'],
-      createdAt: map['createdAt'] ?? Timestamp.now(),
+      offerpool: map['offerpool'] ?? '',
+      createdAt: map['createdAt'] != null ? _parseDateTime(map['createdAt']) : null,
       rejected: map['rejected'] ?? false,
       accepted: map['accepted'] ?? false,
       pickup: map['pickup'] ?? false,
@@ -106,7 +113,7 @@ class RequestRide {
       cancelled: map['cancelled'] ?? false,
       measure: map['measure'],
       quantity: map['quantity'],
-      type: map['type'],
+      type: map['type'] ?? '',
       countryCode: map['country_code'],
       requested: map['requested'] ?? false,
       notificationId: map['notification_id'],
@@ -115,4 +122,3 @@ class RequestRide {
     );
   }
 }
-

@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:ryde_rw/models/user.dart';
 
 class Vehicle {
@@ -6,7 +5,7 @@ class Vehicle {
   final String vehicleRegNumber;
   final String userId;
   final String? vehicleType, tin;
-  final Timestamp createdOn;
+  final DateTime createdOn;
   final bool? approved, active;
 
   Vehicle({
@@ -25,12 +24,20 @@ class Vehicle {
       vehicleMake: map['vehicleMake'] ?? '',
       vehicleRegNumber: map['vehicleRegNumber'] ?? '',
       userId: map['userId'] ?? '',
-      vehicleType: map['vehicleType'] ?? '',
-      tin: map['tin'] ?? '',
-      createdOn: map['createdOn'] ?? Timestamp.now(),
-      approved: map['approved'] ?? false,
-      active: map['active'] ?? false,
+      vehicleType: map['vehicleType'],
+      tin: map['tin'],
+      createdOn: _parseDateTime(map['createdOn']) ?? DateTime.now(),
+      approved: map['approved'],
+      active: map['active'],
     );
+  }
+
+  static DateTime? _parseDateTime(dynamic v) {
+    if (v == null) return null;
+    if (v is DateTime) return v;
+    if (v is Map && v['_seconds'] != null) return DateTime.fromMillisecondsSinceEpoch((v['_seconds'] as int) * 1000);
+    if (v is String) return DateTime.tryParse(v);
+    return null;
   }
 
   Map<String, dynamic> toMap() {
@@ -39,7 +46,7 @@ class Vehicle {
       'vehicleRegNumber': vehicleRegNumber,
       'userId': userId,
       'vehicleType': vehicleType,
-      'createdOn': createdOn,
+      'createdOn': createdOn.toIso8601String(),
       'approved': approved,
       'tin': tin,
       'active': active,
@@ -52,4 +59,3 @@ class UserVehicle {
   final Vehicle userVehicle;
   UserVehicle({required this.user, required this.userVehicle});
 }
-

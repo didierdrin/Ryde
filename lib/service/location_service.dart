@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
@@ -15,7 +14,6 @@ import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/utils/contants.dart';
 
 class LocationService {
-  static final firestore = FirebaseFirestore.instance;
   static Future<Map<String, double>> getCoordinatesFromAddress(
     String address,
   ) async {
@@ -122,30 +120,18 @@ class LocationService {
       Position? position,
     ) async {
       if (position != null && user != null) {
-        position.heading;
         final address = await getAddressFromCoordinates(
           position.latitude,
           position.longitude,
         );
-        await firestore
-            .collection('userLocations')
-            .doc(user.phoneNumber)
-            .update({
-              'currentLocation': {
-                'address': address,
-                'latitude': position.latitude,
-                'longitude': position.longitude,
-                'heading': position.heading,
-              },
-            });
         final location = ref.read(locationProvider);
-        ref.read(locationProvider.notifier).state = {
+        ref.read(locationProvider.notifier).setLocation({
           ...location,
           'lat': position.latitude,
           'long': position.longitude,
           'address': address,
           'heading': position.heading,
-        };
+        });
       }
     });
   }

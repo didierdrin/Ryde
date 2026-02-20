@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 
 class PdfUploader {
   final FirebaseStorage _storage = FirebaseStorage.instance;

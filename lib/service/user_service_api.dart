@@ -1,7 +1,7 @@
 import 'package:ryde_rw/models/user.dart';
 import 'package:ryde_rw/service/local_storage_service.dart';
 import 'package:ryde_rw/service/api_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 
 class UserServiceApi {
   // Migrated to use REST API instead of Firebase

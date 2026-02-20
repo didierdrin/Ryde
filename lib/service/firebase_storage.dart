@@ -1,56 +1,42 @@
+import 'dart:convert';
 import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart' as firebase_storage;
-import 'package:firebase_storage/firebase_storage.dart';
 
+/// Image upload: converts to base64 data URL (no Firebase).
+/// Store the returned string in Neon/API as needed.
 class FirebaseStorageService {
   static Future<String> uploadImage(File image, String folderName) async {
-    String downloadURL = '';
-    var fileName = image.path.split('/').last;
-    final storageRef = FirebaseStorage.instance.ref();
-    final imageRef = storageRef.child('$folderName/$fileName');
-
     try {
-      await imageRef.putFile(File(image.path));
-      downloadURL = await imageRef.getDownloadURL();
-    } on FirebaseException catch (e) {
-      downloadURL = e.toString();
+      final bytes = await image.readAsBytes();
+      final base64 = base64Encode(bytes);
+      final ext = image.path.split('.').last.toLowerCase();
+      final mime = ext == 'png'
+          ? 'image/png'
+          : ext == 'gif'
+              ? 'image/gif'
+              : ext == 'webp'
+                  ? 'image/webp'
+                  : 'image/jpeg';
+      return 'data:$mime;base64,$base64';
     } catch (e) {
-      downloadURL = e.toString();
+      return e.toString();
     }
-    return downloadURL;
   }
-
 
   static Future<List<String>> uploadImagesList(
       List<File> images, String folderName) async {
-    List<String> imagesUrl = [];
-    for (int i = 0; i < images.length; i++) {
-      var fileName = images[i].path.split('/').last;
-
-      final reference = firebase_storage.FirebaseStorage.instance
-          .ref()
-          .child('$folderName/$fileName');
-      firebase_storage.UploadTask uploadTask = reference.putFile(images[i]);
-      uploadTask.snapshotEvents.listen((event) {});
-      firebase_storage.TaskSnapshot snapshot =
-          await uploadTask.whenComplete(() {});
-      final imgUrl = await snapshot.ref.getDownloadURL();
-      imagesUrl.add(imgUrl);
+    List<String> urls = [];
+    for (final image in images) {
+      final url = await uploadImage(image, folderName);
+      urls.add(url);
     }
-    return imagesUrl;
+    return urls;
   }
 
-
-  static  Future<String?> uploadFileToFirebaseStorage(File file, String path) async {
+  static Future<String?> uploadFileToFirebaseStorage(File file, String path) async {
     try {
-      final storageRef = FirebaseStorage.instance.ref().child(path);
-      final uploadTask = await storageRef.putFile(file);
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
-      return downloadUrl;
+      return await uploadImage(file, path);
     } catch (e) {
       return null;
     }
   }
-
 }
-

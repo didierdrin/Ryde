@@ -6,6 +6,7 @@ import 'package:ryde_rw/components/pool_reject_accept.dart';
 import 'package:ryde_rw/components/whatsapp_pool_accept.dart';
 import 'package:ryde_rw/components/widgets/color_button.dart';
 import 'package:ryde_rw/models/offer_pool_model.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:ryde_rw/models/whatsapp_model.dart';
 import '../myTrips/pool_taker_accepted_offer.dart';
 import 'package:ryde_rw/service/offer_pool_service.dart';
@@ -56,7 +57,7 @@ class _PoolTakerRequestScreenState
     final List<Request> requests = [
       ...requestonoffer.map(
         (order) => Request(
-          date: order.createdAt!,
+          date: Timestamp.fromDate(order.createdAt!),
           isOrder: true,
           requestPool: order,
           requested: order.requested,
@@ -64,7 +65,7 @@ class _PoolTakerRequestScreenState
       ),
       ...whatsappOffer.map(
         (reservation) => Request(
-          date: reservation.createdAt!,
+          date: reservation.createdAt ?? Timestamp.now(),
           isOrder: false,
           whatsappPool: reservation,
         ),

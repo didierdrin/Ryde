@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+import 'package:ryde_rw/firestore_stub.dart';
 import 'package:ryde_rw/components/widgets/pooler_widget.dart';
 import '../home/pool_information.dart';
 import 'package:ryde_rw/service/location_service.dart';
@@ -69,7 +70,7 @@ class OfferPoolListPage extends ConsumerWidget {
       return !e.completed &&
           !e.isSeatFull &&
           e.user != user.phoneNumber &&
-          e.dateTime.toDate().isAfter(limit);
+          e.dateTime.isAfter(limit);
     }).toList();
 
     final waypoints = [
@@ -137,7 +138,7 @@ class OfferPoolListPage extends ConsumerWidget {
                         index: index,
                         icons: [Icons.drive_eta, Icons.account_circle],
                         destination: pool.dropoffLocation.address,
-                        time: pool.dateTime,
+                        time: Timestamp.fromDate(pool.dateTime),
                         onTap: () {
                           Navigator.push(
                             context,

@@ -76,3 +76,10 @@ final locationsProvider = StreamProvider<Position>((ref) async* {
   yield* locationService.locationStream;
 });
 
+/// Stub: no Firestore location tracking; stream yields null.
+class LocationTrackerState {
+  final dynamic currentLocation;
+  LocationTrackerState(this.currentLocation);
+}
+final userLocationTrackerStream = StreamProvider.family<LocationTrackerState?, String>((ref, userId) => Stream.value(null));
+
