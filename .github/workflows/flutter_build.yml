@@ -9,6 +9,9 @@ on:
 
 env:
   FLUTTER_VERSION: '3.38.3'
+  # Baked into release builds (same as local: flutter run/build --dart-define=...)
+  IREMBOPAY_PUBLIC_KEY: pk_live_db4184f14bc6407299b205516d5cb832
+  RYDE_API_BASE_URL: https://ryde-backend-eqog.onrender.com/api
 
 # Add permissions at workflow level
 permissions:
@@ -42,13 +45,17 @@ jobs:
 
     - name: Build Android APK
       run: |
-        flutter build apk --release --no-tree-shake-icons
+        flutter build apk --release --no-tree-shake-icons \
+          --dart-define=IREMBOPAY_PUBLIC_KEY="$IREMBOPAY_PUBLIC_KEY" \
+          --dart-define=RYDE_API_BASE_URL="$RYDE_API_BASE_URL"
       env:
         FLUTTER_BUILD_MODE: release
 
     - name: Build Android App Bundle
       run: |
-        flutter build appbundle --release --no-tree-shake-icons
+        flutter build appbundle --release --no-tree-shake-icons \
+          --dart-define=IREMBOPAY_PUBLIC_KEY="$IREMBOPAY_PUBLIC_KEY" \
+          --dart-define=RYDE_API_BASE_URL="$RYDE_API_BASE_URL"
       env:
         FLUTTER_BUILD_MODE: release
 

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ryde_rw/config/irembopay_config.dart';
+import 'package:ryde_rw/models/user.dart';
+import 'package:ryde_rw/screens/payments/irembopay_webview_screen.dart';
 import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
@@ -30,10 +33,12 @@ class _TripsState extends ConsumerState<Trips> {
       final list = (res['trips'] as List?) ?? [];
       if (mounted) setState(() { _trips = list; _loading = false; });
     } catch (e) {
-      if (mounted) setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e.toString().replaceFirst('Exception: ', '');
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -137,7 +142,7 @@ class _TripDetailScreen extends ConsumerStatefulWidget {
   final double? pickupLng;
   final double? destLat;
   final double? destLng;
-  final dynamic user;
+  final User user;
 
   const _TripDetailScreen({
     required this.tripId,
@@ -159,6 +164,115 @@ class _TripDetailScreen extends ConsumerStatefulWidget {
 
 class _TripDetailScreenState extends ConsumerState<_TripDetailScreen> {
   bool _actionLoading = false;
+  Map<String, dynamic>? _payment;
+  bool _paymentLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPaymentIfPassenger();
+  }
+
+  Future<void> _loadPaymentIfPassenger() async {
+    if (!widget.user.isPassenger) {
+      if (mounted) setState(() => _paymentLoading = false);
+      return;
+    }
+    try {
+      final res = await ApiService.getPaymentByTrip(widget.tripId);
+      if (mounted) {
+        setState(() {
+          _payment = res['payment'] as Map<String, dynamic>?;
+          _paymentLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _paymentLoading = false);
+    }
+  }
+
+  Future<void> _payWithIrembo() async {
+    if (!IremboPayConfig.isConfigured) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'IremboPay public key missing. Build with --dart-define=IREMBOPAY_PUBLIC_KEY=pk_…',
+          ),
+        ),
+      );
+      return;
+    }
+    final payment = _payment;
+    if (payment == null) return;
+
+    setState(() => _actionLoading = true);
+    try {
+      final status = payment['payment_status']?.toString() ?? '';
+      if (status == 'COMPLETED') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('This trip is already paid.')),
+          );
+        }
+        return;
+      }
+      final pid = payment['payment_id']?.toString();
+      if (pid == null || pid.isEmpty) {
+        throw Exception('Missing payment id');
+      }
+      final inv = await ApiService.createPaymentInvoice(pid);
+      final invoiceNumber = inv['invoiceNumber']?.toString();
+      if (invoiceNumber == null || invoiceNumber.isEmpty) {
+        throw Exception('Could not create invoice');
+      }
+
+      if (!mounted) return;
+      setState(() => _actionLoading = false);
+
+      final ok = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (context) => IremboPayWebViewScreen(invoiceNumber: invoiceNumber),
+        ),
+      );
+
+      if (!mounted) return;
+      if (ok == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Confirming payment…')),
+        );
+        final outcome = await ApiService.waitForTripPaymentStatus(widget.tripId);
+        if (!mounted) return;
+        if (outcome == 'COMPLETED') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment successful'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          await _loadPaymentIfPassenger();
+        } else if (outcome == 'FAILED') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Payment failed')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Still processing — open this trip again to refresh.'),
+            ),
+          );
+        }
+        if (mounted) setState(() {});
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _actionLoading = false);
+    }
+  }
 
   Future<void> _acceptTrip() async {
     setState(() => _actionLoading = true);
@@ -244,7 +358,14 @@ class _TripDetailScreenState extends ConsumerState<_TripDetailScreen> {
         ),
     };
 
-    final isDriver = widget.user?.userType == 'DRIVER';
+    final isDriver = widget.user.isDriver;
+    final isPassenger = widget.user.isPassenger;
+    final paymentStatus = _payment?['payment_status']?.toString() ?? '';
+    final showPayIrembo = isPassenger &&
+        !_paymentLoading &&
+        _payment != null &&
+        paymentStatus == 'PENDING' &&
+        ['REQUESTED', 'ACCEPTED', 'IN_PROGRESS'].contains(widget.status);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Trip details')),
@@ -268,7 +389,39 @@ class _TripDetailScreenState extends ConsumerState<_TripDetailScreen> {
                 const SizedBox(height: 8),
                 Text('Status: ${widget.status}'),
                 if (widget.fare != null) Text('Fare: ${widget.fare} RWF'),
+                if (isPassenger && !_paymentLoading && _payment != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      'Payment: $paymentStatus',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: paymentStatus == 'COMPLETED' ? Colors.green[700] : Colors.orange[800],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 24),
+                if (showPayIrembo)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _actionLoading ? null : _payWithIrembo,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal.shade700,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: _actionLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.payment),
+                      label: Text(_actionLoading ? 'Please wait…' : 'Pay with IremboPay'),
+                    ),
+                  ),
+                if (showPayIrembo) const SizedBox(height: 12),
                 if (isDriver && widget.status == 'REQUESTED')
                   SizedBox(
                     width: double.infinity,

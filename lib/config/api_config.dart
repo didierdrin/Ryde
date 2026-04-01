@@ -1,4 +1,7 @@
 class ApiConfig {
-  // Production backend URL (Railway)
-  static const String baseUrl = 'https://ryde-backend-production.up.railway.app/api';
+  /// Override at build/run time: `--dart-define=RYDE_API_BASE_URL=https://host/api`
+  static const String baseUrl = String.fromEnvironment(
+    'RYDE_API_BASE_URL',
+    defaultValue: 'https://ryde-backend-eqog.onrender.com/api',
+  );
 }

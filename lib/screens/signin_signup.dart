@@ -34,7 +34,10 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
   @override
   void initState() {
     super.initState();
-    ref.read(userProvider.notifier).setUser(null);
+    // Defer provider update until after build (Riverpod disallows modifying during build/initState).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(userProvider.notifier).setUser(null);
+    });
   }
 
   @override

@@ -234,6 +234,78 @@ class ApiService {
     return await _handleResponse(response);
   }
 
+  /// Server creates Irembo invoice; returns [invoiceNumber] for the widget.
+  static Future<Map<String, dynamic>> createPaymentInvoice(String paymentId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/payments/$paymentId/create-invoice'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  /// Rentals / arbitrary amount (returns [invoiceNumber] and [intentId]).
+  static Future<Map<String, dynamic>> createInvoiceForAmount(
+    num amount, {
+    String? address,
+    String? vehicleRef,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/payments/create-invoice-for-amount'),
+      headers: await _getHeaders(),
+      body: json.encode({
+        'amount': amount,
+        if (address != null && address.isNotEmpty) 'address': address,
+        if (vehicleRef != null && vehicleRef.isNotEmpty) 'vehicleRef': vehicleRef,
+      }),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> getRentalIntent(String intentId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/payments/rental-intent/$intentId'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  /// Poll until webhook marks trip payment COMPLETED/FAILED or [timeout] elapses.
+  static Future<String> waitForTripPaymentStatus(
+    String tripId, {
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
+    final end = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(end)) {
+      final res = await getPaymentByTrip(tripId);
+      final p = res['payment'];
+      if (p is Map<String, dynamic>) {
+        final s = p['payment_status']?.toString() ?? '';
+        if (s == 'COMPLETED') return 'COMPLETED';
+        if (s == 'FAILED') return 'FAILED';
+      }
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+    return 'TIMEOUT';
+  }
+
+  static Future<String> waitForRentalIntentStatus(
+    String intentId, {
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
+    final end = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(end)) {
+      final res = await getRentalIntent(intentId);
+      final intent = res['intent'];
+      if (intent is Map<String, dynamic>) {
+        final s = intent['status']?.toString() ?? '';
+        if (s == 'COMPLETED') return 'COMPLETED';
+        if (s == 'FAILED') return 'FAILED';
+      }
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+    return 'TIMEOUT';
+  }
+
   static Future<Map<String, dynamic>> completePayment(
       String paymentId, String transactionRef) async {
     final response = await http.post(
