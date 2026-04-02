@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:ryde_rw/firestore_stub.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
@@ -17,6 +16,9 @@ import 'package:ryde_rw/shared/locations_shared.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/contants.dart';
+import 'package:ryde_rw/config/irembopay_config.dart';
+import 'package:ryde_rw/screens/payments/irembopay_webview_screen.dart';
+import 'package:ryde_rw/service/api_service.dart';
 import 'dart:math';
 
 class FindPool extends ConsumerStatefulWidget {
@@ -65,22 +67,16 @@ class FindPoolState extends ConsumerState<FindPool> {
     return deg * (pi / 180);
   }
 
-  // Compute the estimated price based on the distance and pricing model.
-  String getEstimatedPrice() {
-    if (pickup == null || dropOff == null) return "0";
-
-    // Use the latitude and longitude from the pickup and dropOff locations.
-    // (Ensure that your Location model contains these properties.)
-    double distance = calculateDistance(
+  /// Raw fare in RWF for Irembo invoice and display.
+  int _estimatedPriceRwf() {
+    if (pickup == null || dropOff == null) return 0;
+    final distance = calculateDistance(
       pickup!.latitude,
       pickup!.longitude,
       dropOff!.latitude,
       dropOff!.longitude,
     );
-
-    // Round up the distance to the next integer kilometer.
-    int km = distance.ceil();
-
+    final km = distance.ceil();
     int price;
     if (km <= 1) {
       price = 1500;
@@ -89,8 +85,13 @@ class FindPoolState extends ConsumerState<FindPool> {
     } else {
       price = 1500 + (29 * 900) + ((km - 30) * 700);
     }
+    return price;
+  }
 
-    // Format the price with a thousands separator (e.g., 30,500).
+  // Compute the estimated price based on the distance and pricing model.
+  String getEstimatedPrice() {
+    final price = _estimatedPriceRwf();
+    if (price == 0) return '0';
     return NumberFormat('#,###').format(price);
   }
 
@@ -221,6 +222,7 @@ class FindPoolState extends ConsumerState<FindPool> {
           .get();
 
       if (duplicateQuery.docs.isNotEmpty) {
+        if (!mounted) return;
         // Show an error message if a duplicate is found
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -252,7 +254,7 @@ class FindPoolState extends ConsumerState<FindPool> {
         requestedBy: user.id,
         pickupLocation: pickup!,
         dropoffLocation: dropOff!,
-        requestedTime: requestedTimestamp is Timestamp ? requestedTimestamp.toDate() : requestedTimestamp as DateTime,
+        requestedTime: requestedTimestamp.toDate(),
         createdAt: DateTime.now(),
         rejected: false,
         accepted: false,
@@ -399,9 +401,104 @@ class FindPoolState extends ConsumerState<FindPool> {
         (isNowSelected || dateTimeController.text.trim().isNotEmpty);
   }
 
+  Future<void> _openIremboFromSheet(
+    BuildContext sheetContext,
+    void Function(void Function()) setModalState,
+    String vehicleType,
+    bool Function() getPaying,
+    void Function(bool) setPaying,
+  ) async {
+    if (getPaying()) return;
+    if (!IremboPayConfig.isConfigured) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'IremboPay not configured. Build with --dart-define=IREMBOPAY_PUBLIC_KEY=pk_…',
+          ),
+        ),
+      );
+      return;
+    }
+    final amount = _estimatedPriceRwf();
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid amount')),
+      );
+      return;
+    }
+    setPaying(true);
+    setModalState(() {});
+    try {
+      final inv = await ApiService.createInvoiceForAmount(
+        amount,
+        address: '${pickup!.address} → ${dropOff!.address}',
+        vehicleRef: vehicleType,
+      );
+      final invoiceNumber = inv['invoiceNumber']?.toString();
+      final intentId = inv['intentId']?.toString();
+      if (invoiceNumber == null ||
+          invoiceNumber.isEmpty ||
+          intentId == null ||
+          intentId.isEmpty) {
+        throw Exception('Could not create payment invoice');
+      }
+      if (!mounted || !sheetContext.mounted) return;
+      Navigator.pop(sheetContext);
+      if (!context.mounted) return;
+      final ok = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (context) => IremboPayWebViewScreen(invoiceNumber: invoiceNumber),
+        ),
+      );
+      if (!mounted) return;
+      if (ok == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Confirming payment…')),
+        );
+        final outcome = await ApiService.waitForRentalIntentStatus(intentId);
+        if (!mounted) return;
+        if (outcome == 'COMPLETED') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment successful'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else if (outcome == 'FAILED') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Payment failed')),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Payment still processing — check again later.'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
+      }
+    } finally {
+      setPaying(false);
+      if (sheetContext.mounted) {
+        setModalState(() {});
+      }
+    }
+  }
+
   void _showPaymentBottomSheet(String vehicleType, DateTime dateTime) {
-    final paymentCode = '*182*8*1*808010#';
-    
+    var paying = false;
+    bool getPaying() => paying;
+    void setPaying(bool v) {
+      paying = v;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -411,178 +508,134 @@ class FindPoolState extends ConsumerState<FindPool> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
-      builder: (context) {
-        return Container(
-          padding: EdgeInsets.fromLTRB(24, 10, 24, 30),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Trip Summary',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 22,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 25),
-              
-              // Route Timeline
-              Container(
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: kLightGreyColor.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SingleChildScrollView(
+              child: Container(
+                padding: EdgeInsets.fromLTRB(24, 10, 24, 30),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Column(
-                      children: [
-                        Icon(Icons.circle, color: kMainColor, size: 14),
-                        Container(
-                          height: 30,
-                          width: 2,
-                          color: kDisabledColor.withValues(alpha: 0.2),
-                          margin: EdgeInsets.symmetric(vertical: 4),
-                        ),
-                        Icon(Icons.location_on, color: kMainColor, size: 20),
-                      ],
+                    Text(
+                      'Trip Summary',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 22,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    SizedBox(height: 25),
+                    Container(
+                      padding: EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: kLightGreyColor.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
                         children: [
                           Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Pickup', style: TextStyle(color: kSimpleText, fontSize: 12)),
-                              SizedBox(height: 2),
-                              Text(
-                                pickup!.address,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                  color: kTextColor,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              Icon(Icons.circle, color: kMainColor, size: 14),
+                              Container(
+                                height: 30,
+                                width: 2,
+                                color: kDisabledColor.withValues(alpha: 0.2),
+                                margin: EdgeInsets.symmetric(vertical: 4),
                               ),
+                              Icon(Icons.location_on, color: kMainColor, size: 20),
                             ],
                           ),
-                          SizedBox(height: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Drop-off', style: TextStyle(color: kSimpleText, fontSize: 12)),
-                              SizedBox(height: 2),
-                              Text(
-                                dropOff!.address,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                  color: kTextColor,
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Pickup', style: TextStyle(color: kSimpleText, fontSize: 12)),
+                                SizedBox(height: 2),
+                                Text(
+                                  pickup!.address,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                    color: kTextColor,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                                SizedBox(height: 16),
+                                Text('Drop-off', style: TextStyle(color: kSimpleText, fontSize: 12)),
+                                SizedBox(height: 2),
+                                Text(
+                                  dropOff!.address,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                    color: kTextColor,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              
-              SizedBox(height: 25),
-              
-              // Details Grid
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildInfoItem('Date', DateFormat('MMM dd, HH:mm').format(dateTime), Icons.calendar_today_rounded),
-                  _buildVehicleItem(vehicleType, iconPath(vehicleType)),
-                  _buildInfoItem('Price', '${getEstimatedPrice()} FRW', Icons.payments_outlined),
-                ],
-              ),
-              
-              SizedBox(height: 30),
-              
-              // Payment Section
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                decoration: BoxDecoration(
-                  color: kMainColor.withValues(alpha: 0.03),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: kMainColor.withValues(alpha: 0.08)),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Payment Code',
-                      style: TextStyle(
-                        color: kSimpleText,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    InkWell(
-                      onTap: () {
-                        Clipboard.setData(ClipboardData(text: paymentCode));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Payment code copied!', 
-                              style: TextStyle(color: Colors.white),
-                            ),
-                            backgroundColor: kMainColor,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(10),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              paymentCode,
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.5,
-                                color: kMainColor,
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Icon(Icons.copy_rounded, size: 18, color: kMainColor),
-                          ],
+                    SizedBox(height: 25),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildInfoItem(
+                          'Date',
+                          DateFormat('MMM dd, HH:mm').format(dateTime),
+                          Icons.calendar_today_rounded,
                         ),
+                        _buildVehicleItem(vehicleType, iconPath(vehicleType)),
+                        _buildInfoItem(
+                          'Price',
+                          '${getEstimatedPrice()} FRW',
+                          Icons.payments_outlined,
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 30),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: kMainColor.withValues(alpha: 0.03),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: kMainColor.withValues(alpha: 0.08)),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Pay securely with IremboPay',
+                            style: TextStyle(
+                              color: kSimpleText,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          BottomBar(
+                            text: paying ? 'Please wait…' : 'Pay with IremboPay',
+                            isValid: !paying,
+                            onTap: () => _openIremboFromSheet(
+                              sheetContext,
+                              setModalState,
+                              vehicleType,
+                              getPaying,
+                              setPaying,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              
-              SizedBox(height: 30),
-              
-              // Action Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                      ),
+                    SizedBox(height: 16),
+                    TextButton(
+                      onPressed: paying ? null : () => Navigator.pop(sheetContext),
                       child: Text(
                         'Dismiss',
                         style: TextStyle(
@@ -592,18 +645,11 @@ class FindPoolState extends ConsumerState<FindPool> {
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: BottomBar(
-                      text: 'Done',
-                      onTap: () => Navigator.pop(context),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );

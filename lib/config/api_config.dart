@@ -1,4 +1,6 @@
 class ApiConfig {
-  // Production backend URL (Railway)
-  static const String baseUrl = 'https://ryde-backend-production.up.railway.app/api';
+  static const String baseUrl = String.fromEnvironment(
+    'RYDE_API_BASE_URL',
+    defaultValue: 'https://ryde-backend-eqog.onrender.com/api',
+  );
 }

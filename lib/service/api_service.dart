@@ -244,6 +244,49 @@ class ApiService {
     return await _handleResponse(response);
   }
 
+  static Future<Map<String, dynamic>> createInvoiceForAmount(
+    num amount, {
+    String? address,
+    String? vehicleRef,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/payments/create-invoice-for-amount'),
+      headers: await _getHeaders(),
+      body: json.encode({
+        'amount': amount,
+        if (address != null && address.isNotEmpty) 'address': address,
+        if (vehicleRef != null && vehicleRef.isNotEmpty) 'vehicleRef': vehicleRef,
+      }),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> getRentalIntent(String intentId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/payments/rental-intent/$intentId'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<String> waitForRentalIntentStatus(
+    String intentId, {
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
+    final end = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(end)) {
+      final res = await getRentalIntent(intentId);
+      final intent = res['intent'];
+      if (intent is Map<String, dynamic>) {
+        final s = intent['status']?.toString() ?? '';
+        if (s == 'COMPLETED') return 'COMPLETED';
+        if (s == 'FAILED') return 'FAILED';
+      }
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+    return 'TIMEOUT';
+  }
+
   // Notification endpoints
   static Future<Map<String, dynamic>> getNotifications({bool? isRead}) async {
     final url = isRead != null
