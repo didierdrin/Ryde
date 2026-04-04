@@ -234,6 +234,32 @@ class ApiService {
     return await _handleResponse(response);
   }
 
+  static Future<Map<String, dynamic>> createPaymentInvoice(String paymentId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/payments/$paymentId/create-invoice'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<String> waitForTripPaymentStatus(
+    String tripId, {
+    Duration timeout = const Duration(seconds: 45),
+  }) async {
+    final end = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(end)) {
+      final res = await getPaymentByTrip(tripId);
+      final p = res['payment'];
+      if (p is Map<String, dynamic>) {
+        final s = p['payment_status']?.toString() ?? '';
+        if (s == 'COMPLETED') return 'COMPLETED';
+        if (s == 'FAILED') return 'FAILED';
+      }
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+    return 'TIMEOUT';
+  }
+
   static Future<Map<String, dynamic>> completePayment(
       String paymentId, String transactionRef) async {
     final response = await http.post(

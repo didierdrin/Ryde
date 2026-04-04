@@ -260,16 +260,42 @@ class FindPoolState extends ConsumerState<FindPool> {
         accepted: false,
         offerpool: '',
         paid: false,
-        price: 1500, // Estimated Price 
+        price: _estimatedPriceRwf(),
         type: type,
         seats: 1,
         countryCode: user.countryCode,
       );
 
       try {
+        final fare = _estimatedPriceRwf();
+        final distanceKm = calculateDistance(
+          pickup!.latitude,
+          pickup!.longitude,
+          dropOff!.latitude,
+          dropOff!.longitude,
+        );
+
+        final tripRes = await ApiService.requestTrip({
+          'pickupLatitude': pickup!.latitude,
+          'pickupLongitude': pickup!.longitude,
+          'pickupAddress': pickup!.address,
+          'destinationLatitude': dropOff!.latitude,
+          'destinationLongitude': dropOff!.longitude,
+          'destinationAddress': dropOff!.address,
+          'distance': distanceKm,
+          'fare': fare,
+        });
+
+        final trip = tripRes['trip'];
+        final rydeTripId = trip is Map<String, dynamic>
+            ? (trip['trip_id'] ?? trip['tripId'])?.toString()
+            : null;
+        if (rydeTripId == null || rydeTripId.isEmpty) {
+          throw Exception('Trip created but missing id from server');
+        }
+
         await RequestRideService.createRequestRide(requestRide);
-        
-        // Save to orders collection
+
         final orderData = {
           'userId': user.id,
           'from': pickup!.address,
@@ -277,18 +303,29 @@ class FindPoolState extends ConsumerState<FindPool> {
           'dateTime': DateFormat('yyyy-MM-dd HH:mm').format(parsedDate),
           'vehicleType': selectedVehicle,
           'estimatedPrice': getEstimatedPrice(),
+          'rydeTripId': rydeTripId,
           'createdAt': Timestamp.now(),
           'status': 'pending',
         };
-        
+
         await OrderService().createRideOrder(orderData);
-        
+
+        if (!mounted) return;
         setState(() {
           isLoading = false;
         });
-        
-        _showPaymentBottomSheet(selectedVehicle, parsedDate);
+
+        _showPaymentBottomSheet(selectedVehicle, parsedDate, rydeTripId);
       } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                e.toString().replaceFirst('Exception: ', ''),
+              ),
+            ),
+          );
+        }
         setState(() {
           isLoading = false;
         });
@@ -405,6 +442,7 @@ class FindPoolState extends ConsumerState<FindPool> {
     BuildContext sheetContext,
     void Function(void Function()) setModalState,
     String vehicleType,
+    String rydeTripId,
     bool Function() getPaying,
     void Function(bool) setPaying,
   ) async {
@@ -419,27 +457,28 @@ class FindPoolState extends ConsumerState<FindPool> {
       );
       return;
     }
-    final amount = _estimatedPriceRwf();
-    if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid amount')),
-      );
-      return;
-    }
     setPaying(true);
     setModalState(() {});
     try {
-      final inv = await ApiService.createInvoiceForAmount(
-        amount,
-        address: '${pickup!.address} → ${dropOff!.address}',
-        vehicleRef: vehicleType,
-      );
+      final payRes = await ApiService.getPaymentByTrip(rydeTripId);
+      final payment = payRes['payment'] as Map<String, dynamic>?;
+      final paymentId = payment?['payment_id']?.toString();
+      final payStatus = payment?['payment_status']?.toString() ?? '';
+      if (paymentId == null || paymentId.isEmpty) {
+        throw Exception('No payment record for this trip');
+      }
+      if (payStatus == 'COMPLETED') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('This trip is already paid.')),
+          );
+        }
+        return;
+      }
+
+      final inv = await ApiService.createPaymentInvoice(paymentId);
       final invoiceNumber = inv['invoiceNumber']?.toString();
-      final intentId = inv['intentId']?.toString();
-      if (invoiceNumber == null ||
-          invoiceNumber.isEmpty ||
-          intentId == null ||
-          intentId.isEmpty) {
+      if (invoiceNumber == null || invoiceNumber.isEmpty) {
         throw Exception('Could not create payment invoice');
       }
       if (!mounted || !sheetContext.mounted) return;
@@ -455,7 +494,7 @@ class FindPoolState extends ConsumerState<FindPool> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Confirming payment…')),
         );
-        final outcome = await ApiService.waitForRentalIntentStatus(intentId);
+        final outcome = await ApiService.waitForTripPaymentStatus(rydeTripId);
         if (!mounted) return;
         if (outcome == 'COMPLETED') {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -492,7 +531,11 @@ class FindPoolState extends ConsumerState<FindPool> {
     }
   }
 
-  void _showPaymentBottomSheet(String vehicleType, DateTime dateTime) {
+  void _showPaymentBottomSheet(
+    String vehicleType,
+    DateTime dateTime,
+    String rydeTripId,
+  ) {
     var paying = false;
     bool getPaying() => paying;
     void setPaying(bool v) {
@@ -626,6 +669,7 @@ class FindPoolState extends ConsumerState<FindPool> {
                               sheetContext,
                               setModalState,
                               vehicleType,
+                              rydeTripId,
                               getPaying,
                               setPaying,
                             ),
