@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:ryde_rw/http_client_factory.dart';
 import 'package:ryde_rw/screens/all_bottom_navigations_screen.dart';
 import 'package:ryde_rw/screens/signin_signup.dart';
 import 'package:ryde_rw/service/local_storage_service.dart';
@@ -26,7 +28,12 @@ void main() async {
     FlutterError.presentError(details);
   };
 
-  runApp(const ProviderScope(child: MyApp()));
+  // Android: Cronet uses the platform DNS stack; default dart:io HTTP often hits
+  // "No address associated with hostname" (errno 7) on emulators and some devices.
+  http.runWithClient(
+    () => runApp(const ProviderScope(child: MyApp())),
+    createPlatformHttpClient,
+  );
 }
 
 class MyApp extends ConsumerStatefulWidget {
