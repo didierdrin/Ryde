@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:ryde_rw/screens/payments/irembopay_checkout.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:ryde_rw/provider/current_location_provider.dart';
 import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
@@ -18,19 +18,59 @@ class Home extends ConsumerStatefulWidget {
   ConsumerState<Home> createState() => _HomeState();
 }
 
-class _HomeState extends ConsumerState<Home> {
+class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
   final _pickupController = TextEditingController();
   final _destinationController = TextEditingController();
   double? _pickupLat, _pickupLng, _destLat, _destLng;
   bool _loading = false;
   String? _error;
   String _selectedService = vehicleTypes.first;
+  String? _pendingPaymentTripId;
+  bool _checkingPendingPayment = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pickupController.dispose();
     _destinationController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPendingPaymentIfNeeded();
+    }
+  }
+
+  Future<void> _checkPendingPaymentIfNeeded() async {
+    final tripId = _pendingPaymentTripId;
+    if (!mounted || tripId == null) return;
+    if (_checkingPendingPayment) return;
+    setState(() => _checkingPendingPayment = true);
+    try {
+      final outcome = await _waitForTripPaymentCompleted(tripId);
+      if (!mounted) return;
+      final msg = outcome == 'COMPLETED'
+          ? 'Payment successful!'
+          : outcome == 'FAILED'
+              ? 'Payment failed or was cancelled.'
+              : 'Payment is processing. Please check again shortly.';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      if (outcome == 'COMPLETED' || outcome == 'FAILED') {
+        _pendingPaymentTripId = null;
+      }
+    } catch (_) {
+      // Ignore transient errors on resume; user can retry by resuming again.
+    } finally {
+      if (mounted) setState(() => _checkingPendingPayment = false);
+    }
   }
 
   Future<void> _useCurrentLocation() async {
@@ -184,28 +224,24 @@ class _HomeState extends ConsumerState<Home> {
         return;
       }
 
-      // Open the IremboPay inline widget flow (hosted by backend for mobile WebView).
+      // Open the IremboPay inline widget flow in the external browser.
       // The hosted page lives at GET /api/payments/checkout/:invoiceNumber.
       // ApiService.baseUrl may or may not already include `/api`, so normalize to the host root.
       final hostBase = ApiService.baseUrl.replaceFirst(RegExp(r'/api/?$'), '');
       final checkoutUrl = '$hostBase/api/payments/checkout/$invoiceNumber';
-      final result = await Navigator.of(context).push<IremboPayCheckoutResult>(
-        MaterialPageRoute(builder: (_) => IremboPayCheckoutScreen(checkoutUrl: checkoutUrl)),
-      );
+      final uri = Uri.parse(checkoutUrl);
 
-      // Poll backend for webhook-updated status (same as ryde-web)
-      final outcome = await _waitForTripPaymentCompleted(tripId);
-
-      if (mounted) {
-        final msg = outcome == 'COMPLETED'
-            ? 'Payment successful!'
-            : outcome == 'FAILED'
-                ? 'Payment failed or was cancelled.'
-                : (result?.ok == true)
-                    ? 'Payment is processing. Please check again shortly.'
-                    : 'Payment not completed yet.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-        _destinationController.clear();
+      _pendingPaymentTripId = tripId;
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Complete payment in your browser, then return to the app.')),
+          );
+          _destinationController.clear();
+        }
+      } else {
+        throw Exception('Could not open payment page in browser.');
       }
     } catch (e) {
       if (mounted) {
