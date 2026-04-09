@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:ryde_rw/screens/payments/irembopay_checkout.dart';
 import 'package:ryde_rw/provider/current_location_provider.dart';
 import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
@@ -23,6 +24,7 @@ class _HomeState extends ConsumerState<Home> {
   double? _pickupLat, _pickupLng, _destLat, _destLng;
   bool _loading = false;
   String? _error;
+  String _selectedService = vehicleTypes.first;
 
   @override
   void dispose() {
@@ -33,7 +35,9 @@ class _HomeState extends ConsumerState<Home> {
 
   Future<void> _useCurrentLocation() async {
     try {
-      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
       _pickupLat = pos.latitude;
       _pickupLng = pos.longitude;
       final placemarks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
@@ -46,7 +50,9 @@ class _HomeState extends ConsumerState<Home> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _error = 'Could not get location');
+      if (mounted) {
+        setState(() => _error = 'Could not get location');
+      }
     }
   }
 
@@ -66,26 +72,62 @@ class _HomeState extends ConsumerState<Home> {
     return 1500 + (29 * 900) + ((km - 30) * 700).round();
   }
 
-  Future<void> _requestTrip() async {
+  String iconPath(String type) {
+    switch (type) {
+      case 'Taxi/Cab':
+        return 'assets/icons/1.png';
+      case 'Moto':
+        return 'assets/icons/3.png';
+      case 'Truck':
+        return 'assets/icons/2.png';
+      case 'Three Wheels':
+        return 'assets/icons/4.png';
+      default:
+        return 'assets/icons/1.png';
+    }
+  }
+
+  Future<String> _waitForTripPaymentCompleted(String tripId, {int maxMs = 45000}) async {
+    final start = DateTime.now();
+    while (DateTime.now().difference(start).inMilliseconds < maxMs) {
+      final res = await ApiService.getPaymentByTrip(tripId);
+      final payment = (res['payment'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+      final status = (payment['payment_status'] ?? '').toString().toUpperCase();
+      if (status == 'COMPLETED') return 'COMPLETED';
+      if (status == 'FAILED') return 'FAILED';
+      await Future.delayed(const Duration(seconds: 2));
+    }
+    return 'TIMEOUT';
+  }
+
+  Future<void> _payNow() async {
     final user = ref.read(userProvider);
-    if (user == null) return;
+    if (user == null) {
+      return;
+    }
     if (user.userType != 'PASSENGER') {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Only passengers can request a trip')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Only passengers can request a trip')),
+        );
+      }
       return;
     }
     if (_pickupLat == null || _pickupLng == null) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Set pickup location (use current or enter address)')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Set pickup location (use current or enter address)')),
+        );
+      }
       return;
     }
     String destAddress = _destinationController.text.trim();
     if (destAddress.isEmpty) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter destination address')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Enter destination address')),
+        );
+      }
       return;
     }
     setState(() { _loading = true; _error = null; });
@@ -103,7 +145,7 @@ class _HomeState extends ConsumerState<Home> {
         googleMapsApiKey: apiKey,
       )) ?? _haversine(_pickupLat!, _pickupLng!, _destLat!, _destLng!);
       final fare = _estimateFare(distance);
-      await ApiService.requestTrip({
+      final tripRes = await ApiService.requestTrip({
         'pickupLatitude': _pickupLat,
         'pickupLongitude': _pickupLng,
         'pickupAddress': _pickupController.text.trim(),
@@ -112,19 +154,63 @@ class _HomeState extends ConsumerState<Home> {
         'destinationAddress': destAddress,
         'distance': distance,
         'fare': fare.toDouble(),
+        'serviceType': _selectedService, // all orders are instant now
       });
+
+      final trip = (tripRes['trip'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+      final tripId = (trip['trip_id'] ?? trip['tripId'] ?? '').toString();
+      if (tripId.isEmpty) {
+        throw Exception('Trip created but missing trip id');
+      }
+
+      final paymentRes = await ApiService.getPaymentByTrip(tripId);
+      final payment = (paymentRes['payment'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
+      final paymentId = (payment['payment_id'] ?? payment['paymentId'] ?? '').toString();
+      if (paymentId.isEmpty) {
+        throw Exception('Payment record not found for this trip');
+      }
+
+      final invoiceRes = await ApiService.createPaymentInvoice(paymentId);
+      final invoiceNumber = (invoiceRes['invoiceNumber'] ?? '').toString();
+      if (invoiceNumber.isEmpty) {
+        throw Exception('Could not create payment invoice');
+      }
+
       if (mounted) {
         setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Trip requested successfully')),
-        );
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      // Open the same Irembo inline widget flow (hosted by backend for mobile WebView)
+      final checkoutUrl = '${ApiService.baseUrl}/payments/checkout/$invoiceNumber';
+      final result = await Navigator.of(context).push<IremboPayCheckoutResult>(
+        MaterialPageRoute(builder: (_) => IremboPayCheckoutScreen(checkoutUrl: checkoutUrl)),
+      );
+
+      // Poll backend for webhook-updated status (same as ryde-web)
+      final outcome = await _waitForTripPaymentCompleted(tripId);
+
+      if (mounted) {
+        final msg = outcome == 'COMPLETED'
+            ? 'Payment successful!'
+            : outcome == 'FAILED'
+                ? 'Payment failed or was cancelled.'
+                : (result?.ok == true)
+                    ? 'Payment is processing. Please check again shortly.'
+                    : 'Payment not completed yet.';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
         _destinationController.clear();
       }
     } catch (e) {
-      if (mounted) setState(() {
-        _loading = false;
-        _error = e.toString().replaceFirst('Exception: ', '');
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = e.toString().replaceFirst('Exception: ', '');
+        });
+      }
     }
   }
 
@@ -182,7 +268,7 @@ class _HomeState extends ConsumerState<Home> {
                     children: [
                       const SizedBox(height: 8),
                       Text(
-                        user.isPassenger ? 'Book a ride' : 'Your trips',
+                        user.isPassenger ? 'Get a ride' : 'Your trips',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       if (user.isPassenger) ...[
@@ -211,10 +297,39 @@ class _HomeState extends ConsumerState<Home> {
                           Text(_error!, style: const TextStyle(color: Colors.red)),
                         ],
                         const SizedBox(height: 16),
+                        InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: 'Service',
+                            border: OutlineInputBorder(),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedService,
+                              isExpanded: true,
+                              items: vehicleTypes.map((t) {
+                                return DropdownMenuItem<String>(
+                                  value: t,
+                                  child: Row(
+                                    children: [
+                                      Image.asset(iconPath(t), width: 22, height: 22),
+                                      const SizedBox(width: 10),
+                                      Text(t),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: _loading ? null : (v) {
+                                if (v == null) return;
+                                setState(() => _selectedService = v);
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _loading ? null : _requestTrip,
+                            onPressed: _loading ? null : _payNow,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryColor,
                               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -225,7 +340,7 @@ class _HomeState extends ConsumerState<Home> {
                                     width: 22,
                                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                   )
-                                : const Text('Request trip', style: TextStyle(color: Colors.white),),
+                                : const Text('Pay Now', style: TextStyle(color: Colors.white),),
                           ),
                         ),
                       ] else

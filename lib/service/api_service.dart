@@ -234,6 +234,14 @@ class ApiService {
     return await _handleResponse(response);
   }
 
+  static Future<Map<String, dynamic>> createPaymentInvoice(String paymentId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/payments/$paymentId/create-invoice'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
   static Future<Map<String, dynamic>> completePayment(
       String paymentId, String transactionRef) async {
     final response = await http.post(
