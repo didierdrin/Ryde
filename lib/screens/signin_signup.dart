@@ -118,28 +118,36 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
       ),
       child: ModalProgressHUD(
         inAsyncCall: _isLoading,
-        child: Scaffold(
-          backgroundColor: Colors.white,
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 40),
-                    Text(
-                      _isLogin ? 'Welcome Back' : 'Create Account',
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20.0),
-                    ),
-                    const SizedBox(height: 30),
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.grey[200],
-                      child: Icon(Icons.directions_car, size: 50, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 40),
-                    if (!_isLogin) ...[
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.white, Colors.black],
+            ),
+          ),
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 40),
+                      Text(
+                        _isLogin ? 'Welcome Back' : 'Create Account',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 20.0),
+                      ),
+                      const SizedBox(height: 30),
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.grey[200],
+                        backgroundImage: const AssetImage('assets/1.png'),
+                      ),
+                      const SizedBox(height: 40),
+                      if (!_isLogin) ...[
                       TextFormField(
                         controller: _nameController,
                         decoration: InputDecoration(
@@ -279,7 +287,8 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
                         style: TextStyle(color: primaryColor),
                       ),
                     ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
