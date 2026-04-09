@@ -184,8 +184,11 @@ class _HomeState extends ConsumerState<Home> {
         return;
       }
 
-      // Open the same Irembo inline widget flow (hosted by backend for mobile WebView)
-      final checkoutUrl = '${ApiService.baseUrl}/payments/checkout/$invoiceNumber';
+      // Open the IremboPay inline widget flow (hosted by backend for mobile WebView).
+      // The hosted page lives at GET /api/payments/checkout/:invoiceNumber.
+      // ApiService.baseUrl may or may not already include `/api`, so normalize to the host root.
+      final hostBase = ApiService.baseUrl.replaceFirst(RegExp(r'/api/?$'), '');
+      final checkoutUrl = '$hostBase/api/payments/checkout/$invoiceNumber';
       final result = await Navigator.of(context).push<IremboPayCheckoutResult>(
         MaterialPageRoute(builder: (_) => IremboPayCheckoutScreen(checkoutUrl: checkoutUrl)),
       );
