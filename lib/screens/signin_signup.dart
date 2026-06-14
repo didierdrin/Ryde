@@ -34,7 +34,11 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
   @override
   void initState() {
     super.initState();
-    ref.read(userProvider.notifier).setUser(null);
+    // Delay until after the first frame so we don't modify a provider
+    // while the widget tree is still building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.read(userProvider.notifier).setUser(null);
+    });
   }
 
   @override

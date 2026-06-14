@@ -18,7 +18,7 @@ class Collections {
 
 Collections collections = Collections();
 
-const String apiKey = 'AIzaSyC0hBNKoBnYhqmle-QoJwk4_GObUQGm3E8';
+const String apiKey = 'AIzaSyDxf2ILW56I2lYs1ZX-lqrHaKVUNZ9cE5E';
 
 final List<Map<String, dynamic>> seats = [
   {"label": "1 Seat", "value": 1},

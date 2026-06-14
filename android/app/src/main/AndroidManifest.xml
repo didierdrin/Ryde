@@ -16,7 +16,7 @@
         android:requestLegacyExternalStorage="true">
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyC0hBNKoBnYhqmle-QoJwk4_GObUQGm3E8" />
+            android:value="AIzaSyDxf2ILW56I2lYs1ZX-lqrHaKVUNZ9cE5E" />
         
         <activity
             android:name=".MainActivity"

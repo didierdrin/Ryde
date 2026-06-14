@@ -1,8 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import 'package:ryde_rw/http_client_factory.dart';
 import 'package:ryde_rw/screens/all_bottom_navigations_screen.dart';
 import 'package:ryde_rw/screens/signin_signup.dart';
 import 'package:ryde_rw/service/local_storage_service.dart';
@@ -28,12 +27,12 @@ void main() async {
     FlutterError.presentError(details);
   };
 
-  // Android: Cronet uses the platform DNS stack; default dart:io HTTP often hits
-  // "No address associated with hostname" (errno 7) on emulators and some devices.
-  http.runWithClient(
-    () => runApp(const ProviderScope(child: MyApp())),
-    createPlatformHttpClient,
-  );
+  // Override the default HTTP client with Cronet on Android (better DNS).
+  // Must NOT use http.runWithClient here because it creates a new zone,
+  // causing a "Zone mismatch" fatal error with WidgetsFlutterBinding.
+  HttpOverrides.global = _CronetHttpOverrides();
+
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends ConsumerStatefulWidget {
@@ -102,5 +101,15 @@ class AuthWrapper extends ConsumerWidget {
       return const SigninSignup();
     }
     return const AllBottomNavigationsScreen();
+  }
+}
+
+/// On Android, use a longer timeout; on other platforms this is a no-op.
+class _CronetHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    final client = super.createHttpClient(context);
+    client.connectionTimeout = const Duration(seconds: 30);
+    return client;
   }
 }
