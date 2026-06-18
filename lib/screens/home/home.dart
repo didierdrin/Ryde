@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:ryde_rw/provider/current_location_provider.dart';
 import 'package:ryde_rw/service/api_service.dart';
+import 'package:ryde_rw/service/realtime_location_tracker.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/contants.dart';
@@ -27,16 +28,102 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
   String _selectedService = vehicleTypes.first;
   String? _pendingPaymentTripId;
   bool _checkingPendingPayment = false;
+  final _tracker = RealtimeLocationTracker();
+  Map<String, dynamic>? _liveLocations;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initTracking());
+  }
+
+  Future<void> _initTracking() async {
+    final user = ref.read(userProvider);
+    if (user == null) return;
+    await _tracker.startUploading(isDriver: user.isDriver);
+    await _loadActiveTripTracking();
+  }
+
+  Future<void> _loadActiveTripTracking() async {
+    try {
+      final res = await ApiService.getMyTrips();
+      final active = findActiveTrip((res['trips'] as List?) ?? []);
+      if (!mounted || active == null) return;
+      final tripId = tripStr(active, 'tripId');
+      if (tripId.isEmpty || !isTrackableTripStatus(tripStr(active, 'status'))) {
+        return;
+      }
+      _tracker.startPolling(tripId, (loc) {
+        if (!mounted) return;
+        setState(() => _liveLocations = loc);
+      });
+    } catch (_) {}
+  }
+
+  Set<Marker> _buildMapMarkers(dynamic user) {
+    final markers = <Marker>{
+      if (_pickupLat != null && _pickupLng != null)
+        Marker(
+          markerId: const MarkerId('pickup'),
+          position: LatLng(_pickupLat!, _pickupLng!),
+        ),
+      if (_destLat != null && _destLng != null)
+        Marker(
+          markerId: const MarkerId('dest'),
+          position: LatLng(_destLat!, _destLng!),
+        ),
+    };
+
+    final loc = _liveLocations;
+    if (loc == null) return markers;
+
+    final driver = loc['driver'] as Map<String, dynamic>?;
+    final passenger = loc['passenger'] as Map<String, dynamic>?;
+
+    if (user.isPassenger && driver != null) {
+      final lat = (driver['latitude'] as num?)?.toDouble();
+      final lng = (driver['longitude'] as num?)?.toDouble();
+      if (lat != null && lng != null) {
+        markers.add(
+          Marker(
+            markerId: const MarkerId('driver'),
+            position: LatLng(lat, lng),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+            infoWindow: InfoWindow(
+              title: 'Driver',
+              snippet: driver['name']?.toString() ?? 'Your driver',
+            ),
+          ),
+        );
+      }
+    }
+
+    if (user.isDriver && passenger != null) {
+      final lat = (passenger['latitude'] as num?)?.toDouble();
+      final lng = (passenger['longitude'] as num?)?.toDouble();
+      if (lat != null && lng != null) {
+        markers.add(
+          Marker(
+            markerId: const MarkerId('passenger'),
+            position: LatLng(lat, lng),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+            infoWindow: InfoWindow(
+              title: 'Passenger',
+              snippet: passenger['name']?.toString() ?? 'Passenger',
+            ),
+          ),
+        );
+      }
+    }
+
+    return markers;
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _tracker.dispose();
     _pickupController.dispose();
     _destinationController.dispose();
     super.dispose();
@@ -65,6 +152,9 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       if (outcome == 'COMPLETED' || outcome == 'FAILED') {
         _pendingPaymentTripId = null;
+        if (outcome == 'COMPLETED') {
+          await _loadActiveTripTracking();
+        }
       }
     } catch (_) {
       // Ignore transient errors on resume; user can retry by resuming again.
@@ -232,6 +322,7 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
       final uri = Uri.parse(checkoutUrl);
 
       _pendingPaymentTripId = tripId;
+      await _loadActiveTripTracking();
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
         if (mounted) {
@@ -276,21 +367,30 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                 target: _kigaliCenter,
                 zoom: 14,
               ),
-              markers: {
-                if (_pickupLat != null && _pickupLng != null)
-                  Marker(
-                    markerId: const MarkerId('pickup'),
-                    position: LatLng(_pickupLat!, _pickupLng!),
-                  ),
-                if (_destLat != null && _destLng != null)
-                  Marker(
-                    markerId: const MarkerId('dest'),
-                    position: LatLng(_destLat!, _destLng!),
-                  ),
-              },
+              markers: _buildMapMarkers(user),
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
             ),
+            if (_liveLocations != null && isTrackableTripStatus(tripStr(_liveLocations!, 'status')))
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 8,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade600,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.circle, size: 8, color: Colors.white),
+                      SizedBox(width: 6),
+                      Text('Live tracking', style: TextStyle(color: Colors.white, fontSize: 12)),
+                    ],
+                  ),
+                ),
+              ),
             SafeArea(
               child: DraggableScrollableSheet(
                 initialChildSize: 0.35,

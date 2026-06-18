@@ -192,6 +192,14 @@ class ApiService {
     return await _handleResponse(response);
   }
 
+  static Future<Map<String, dynamic>> getTripLocations(String tripId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/trips/$tripId/locations'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
   static Future<Map<String, dynamic>> acceptTrip(String tripId) async {
     final response = await http.post(
       Uri.parse('$baseUrl/trips/$tripId/accept'),
