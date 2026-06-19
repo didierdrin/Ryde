@@ -4,8 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:ryde_rw/config/api_config.dart';
 import 'package:ryde_rw/provider/current_location_provider.dart';
+import 'package:ryde_rw/screens/payments/irembopay_checkout.dart';
 import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/service/realtime_location_tracker.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
@@ -314,31 +315,54 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
         return;
       }
 
-      // Open the IremboPay inline widget flow in the external browser.
-      // The hosted page lives at GET /api/payments/checkout/:invoiceNumber.
-      // ApiService.baseUrl may or may not already include `/api`, so normalize to the host root.
-      final hostBase = ApiService.baseUrl.replaceFirst(RegExp(r'/api/?$'), '');
-      final checkoutUrl = '$hostBase/api/payments/checkout/$invoiceNumber';
-      final uri = Uri.parse(checkoutUrl);
-
       _pendingPaymentTripId = tripId;
       await _loadActiveTripTracking();
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Complete payment in your browser, then return to the app.')),
-          );
-          _destinationController.clear();
+
+      if (!mounted) return;
+
+      final checkoutUrl = ApiConfig.checkoutUrl(invoiceNumber);
+      final payResult = await Navigator.of(context).push<IremboPayCheckoutResult>(
+        MaterialPageRoute(
+          builder: (_) => IremboPayCheckoutScreen(checkoutUrl: checkoutUrl),
+        ),
+      );
+
+      if (!mounted) return;
+
+      if (payResult?.ok == true) {
+        final outcome = await _waitForTripPaymentCompleted(tripId);
+        if (!mounted) return;
+        final msg = outcome == 'COMPLETED'
+            ? 'Payment successful!'
+            : outcome == 'FAILED'
+                ? 'Payment failed or was cancelled.'
+                : 'Payment is processing. Please check again shortly.';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        if (outcome == 'COMPLETED' || outcome == 'FAILED') {
+          _pendingPaymentTripId = null;
         }
+        _destinationController.clear();
+      } else if (payResult?.ok == false) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Payment was cancelled or failed. You can try again.')),
+        );
       } else {
-        throw Exception('Could not open payment page in browser.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Complete payment when ready, then return to the app.')),
+        );
       }
     } catch (e) {
       if (mounted) {
+        var message = e.toString().replaceFirst('Exception: ', '');
+        if (message.contains('IremboPay is not configured') && ApiConfig.isLocalBackend) {
+          message =
+              'Local backend is missing IremboPay env vars (IREMBOPAY_SECRET_KEY, '
+              'IREMBOPAY_ACCOUNT_ID, IREMBOPAY_PRODUCT_ID). Copy them from Railway into '
+              'ryde-backend/.env, or run without --dart-define=API_BASE_URL to use production.';
+        }
         setState(() {
           _loading = false;
-          _error = e.toString().replaceFirst('Exception: ', '');
+          _error = message;
         });
       }
     }

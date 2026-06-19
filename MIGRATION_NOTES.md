@@ -57,10 +57,28 @@ Keep these services using Firebase:
 
 ## Configuration
 
-Update `lib/config/api_config.dart` with your backend URL:
-- Android Emulator: `http://10.0.2.2:3000/api`
+**API URL** is set in `lib/config/api_config.dart`.
+
+- **Default (recommended):** production Railway — IremboPay is configured there. No extra setup needed.
+- **Local backend (optional):** only if you run `ryde-backend` on your machine **and** copy all `IREMBOPAY_*` vars from Railway into `ryde-backend/.env`.
+
+```bash
+# Production backend (default — payments work)
+flutter run
+
+# Local backend on Android emulator (requires IremboPay in ryde-backend/.env)
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api
+
+# Local backend on iOS simulator
+flutter run --dart-define=API_BASE_URL=http://localhost:3000/api
+```
+
+Platform notes when using a local API URL:
+- Android Emulator: `http://10.0.2.2:3000/api` (not `localhost`)
 - iOS Simulator: `http://localhost:3000/api`
 - Physical Device: `http://YOUR_COMPUTER_IP:3000/api`
+
+Payments use the in-app WebView (`IremboPayCheckoutScreen`) loading the backend hosted checkout page at `/api/payments/checkout/:invoiceNumber`. The mobile app does **not** need `IREMBOPAY_*` env vars — those live on the backend only.
 
 ## Example: Updating UserService
 
@@ -109,7 +127,7 @@ await ApiService.updateProfile({'profilePicture': fileUrl});
 
 ## Migration Checklist
 
-- [ ] Update `lib/config/api_config.dart` with correct backend URL
+- [ ] Confirm `lib/config/api_config.dart` uses production URL (default) or `--dart-define=API_BASE_URL` for local dev
 - [ ] Replace `UserService` calls with `ApiService` calls
 - [ ] Replace `RequestRideService` calls with `ApiService` calls
 - [ ] Replace `DriverService` calls with `ApiService` calls
