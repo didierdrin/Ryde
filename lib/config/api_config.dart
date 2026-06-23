@@ -1,18 +1,8 @@
 /// Backend API configuration for the mobile app.
 ///
-/// **Default:** production Railway (IremboPay is configured there).
-///
-/// To point at a local backend during development:
-/// ```bash
-/// flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api
-/// ```
-/// Android emulator: `http://10.0.2.2:3000/api`
-/// iOS simulator: `http://localhost:3000/api`
-/// Physical device: `http://YOUR_LAN_IP:3000/api`
-///
-/// Local backend requires the same IremboPay env vars as production (`IREMBOPAY_*`
-/// in `ryde-backend/.env`). Otherwise invoice creation fails with
-/// "IremboPay is not configured" errors.
+/// **Default:** production Railway (IremboPay checkout works there).
+/// The mobile app never reads `IREMBOPAY_*` env vars — payment opens
+/// `{API host}/api/payments/checkout/{invoiceNumber}` in the browser or WebView.
 class ApiConfig {
   static const String productionBaseUrl =
       'https://ryde-backend-production.up.railway.app/api';

@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:ryde_rw/screens/payments/irembopay_checkout.dart';
+import 'package:ryde_rw/service/payment_checkout_service.dart';
 import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/utils.dart';
@@ -50,27 +50,32 @@ class _RentalsScreenState extends State<RentalsScreen> {
     setState(() => _payingId = id);
     try {
       final invoiceRes = await ApiService.createInvoiceForAmount(dailyRate, vehicleRef: id);
-      final checkoutUrl = (invoiceRes['checkoutUrl'] ?? invoiceRes['checkout_url'])?.toString();
-      if (checkoutUrl == null || checkoutUrl.isEmpty) {
-        throw Exception('Could not create payment invoice');
-      }
+      final intentId = (invoiceRes['intentId'] ?? invoiceRes['intent_id'])?.toString();
+      final checkoutUrl = PaymentCheckoutService.resolveCheckoutUrl(invoiceRes);
 
       if (!mounted) return;
-      final payResult = await Navigator.of(context).push<IremboPayCheckoutResult>(
-        MaterialPageRoute(builder: (_) => IremboPayCheckoutScreen(checkoutUrl: checkoutUrl)),
-      );
+      final payResult = await PaymentCheckoutService.openCheckout(context, checkoutUrl);
 
-      if (payResult?.ok == true && mounted) {
+      if (!mounted) return;
+
+      if (payResult?.ok == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: kGreen,
             content: Text('Booking confirmed for ${vehicle['make']} ${vehicle['model']}'),
           ),
         );
+      } else if (intentId != null && intentId.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Complete payment in your browser, then return to the app.'),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        final message = _friendlyPaymentError(e);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
       if (mounted) setState(() => _payingId = null);
@@ -139,7 +144,7 @@ class _RentalsScreenState extends State<RentalsScreen> {
                                 ],
                                 const SizedBox(height: 12),
                                 Text(
-                                  'RWF ${formatPriceWithCommas(dailyRate)} / day',
+                                  'RWF ${formatPriceWithCommas(dailyRate.round())} / day',
                                   style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                                 ),
                                 const SizedBox(height: 12),
@@ -170,5 +175,15 @@ class _RentalsScreenState extends State<RentalsScreen> {
                   },
                 ),
     );
+  }
+
+  String _friendlyPaymentError(Object e) {
+    var message = e.toString().replaceFirst('Exception: ', '');
+    if (message.toLowerCase().contains('irembopay') &&
+        message.toLowerCase().contains('not configured')) {
+      return 'Payment server is not ready. Use the production backend (default) or '
+          'configure IremboPay on your API server.';
+    }
+    return message;
   }
 }
