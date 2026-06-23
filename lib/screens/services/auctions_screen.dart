@@ -107,7 +107,7 @@ class _AuctionsScreenState extends State<AuctionsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirm purchase'),
-        content: Text('Buy "$title" for RWF ${formatPriceWithCommas(price.toDouble())}?'),
+        content: Text('Buy "$title" for RWF ${formatPriceWithCommas(price.round())}?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Buy')),
@@ -218,7 +218,7 @@ class _AuctionsScreenState extends State<AuctionsScreen> {
                                       if (item['make'] != null)
                                         Text('${item['make']} ${item['model'] ?? ''}', style: TextStyle(color: kSimpleText, fontSize: 13)),
                                       const SizedBox(height: 6),
-                                      Text('RWF ${formatPriceWithCommas(price.toDouble())}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                      Text('RWF ${formatPriceWithCommas(price.round())}', style: const TextStyle(fontWeight: FontWeight.w600)),
                                       if (type == 'SELL')
                                         Padding(
                                           padding: const EdgeInsets.only(top: 10),
