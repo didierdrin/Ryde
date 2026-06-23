@@ -6,6 +6,7 @@ import 'package:ryde_rw/screens/more/manage_address.dart';
 import 'package:ryde_rw/screens/more/privacy_policy.dart';
 import 'package:ryde_rw/screens/more/profile_simple.dart';
 import 'package:ryde_rw/screens/more/support.dart';
+import 'package:ryde_rw/screens/services/services_hub_screen.dart';
 import 'package:ryde_rw/screens/signin_signup.dart';
 import 'package:ryde_rw/service/local_storage_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
@@ -179,6 +180,39 @@ class More extends ConsumerWidget {
                     ),
                   ),
                 ],
+              ),
+            ),
+            Container(
+              width: MediaQuery.of(context).size.width,
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: primaryColor.withOpacity(0.12),
+                  child: Icon(Icons.grid_view_rounded, color: primaryColor),
+                ),
+                title: Text(
+                  'Ryde Services',
+                  style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                subtitle: const Text(
+                  'Rentals, auction, mechanics & drivers',
+                  style: TextStyle(fontSize: 12),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ServicesHubScreen()),
+                  );
+                },
               ),
             ),
             // Wallet Section

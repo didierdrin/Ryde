@@ -339,4 +339,82 @@ class ApiService {
     );
     return await _handleResponse(response);
   }
+
+  // Rentals
+  static Future<Map<String, dynamic>> getRentalVehicles() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/rentals'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> createInvoiceForAmount(
+    double amount, {
+    String? address,
+    String? vehicleRef,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/payments/create-invoice-for-amount'),
+      headers: await _getHeaders(),
+      body: json.encode({
+        'amount': amount,
+        if (address != null) 'address': address,
+        if (vehicleRef != null) 'vehicleRef': vehicleRef,
+      }),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> getRentalIntent(String intentId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/payments/rental-intent/${Uri.encodeComponent(intentId)}'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  // Auctions
+  static Future<Map<String, dynamic>> getAuctionListings({String? type}) async {
+    final url = type != null
+        ? '$baseUrl/auctions?type=${Uri.encodeComponent(type)}'
+        : '$baseUrl/auctions';
+    final response = await http.get(Uri.parse(url), headers: await _getHeaders());
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> createAuctionListing(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auctions'),
+      headers: await _getHeaders(),
+      body: json.encode(data),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> purchaseAuctionListing(String listingId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auctions/$listingId/purchase'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  // Mechanics
+  static Future<Map<String, dynamic>> getMechanics(double latitude, double longitude, {double radius = 15}) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/mechanics?latitude=$latitude&longitude=$longitude&radius=$radius'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  // Nearby drivers
+  static Future<Map<String, dynamic>> getNearbyDrivers(double latitude, double longitude, {double radius = 10}) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/drivers/nearby?latitude=$latitude&longitude=$longitude&radius=$radius'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
 }
