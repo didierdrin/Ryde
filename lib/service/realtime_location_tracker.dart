@@ -105,7 +105,9 @@ double? tripDouble(Map<String, dynamic> m, String camelKey) {
   );
   final v = m[camelKey] ?? m[snake];
   if (v == null) return null;
-  return (v as num).toDouble();
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v.trim());
+  return null;
 }
 
 Map<String, dynamic>? findActiveTrip(List<dynamic> trips) {
