@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:ryde_rw/config/api_config.dart';
 import 'package:ryde_rw/screens/payments/irembopay_checkout.dart';
+import 'package:ryde_rw/service/irembopay_widget_html.dart';
 
-/// Opens Ryde/IremboPay checkout at `/api/payments/checkout/:invoiceNumber`.
-/// The mobile app does not need IremboPay env vars — only the backend checkout page does.
+/// Opens IremboPay checkout with the inline widget (same flow as ryde-web).
+/// The backend creates the invoice; the app opens the widget with the public key.
 class PaymentCheckoutService {
   static String checkoutUrl(String invoiceNumber) =>
       ApiConfig.checkoutUrl(invoiceNumber.trim());
@@ -23,55 +23,67 @@ class PaymentCheckoutService {
     return null;
   }
 
-  static String resolveCheckoutUrl(Map<String, dynamic> invoiceResponse) {
-    final direct = (invoiceResponse['checkoutUrl'] ??
-            invoiceResponse['checkout_url'])
+  static String resolveEnvironment(Map<String, dynamic> invoiceResponse) {
+    final fromApi = (invoiceResponse['irembopayEnvironment'] ??
+            invoiceResponse['irembopay_environment'])
         ?.toString();
-    if (direct != null && direct.isNotEmpty) return direct;
-
-    final invoiceNumber = invoiceNumberFromResponse(invoiceResponse);
-    if (invoiceNumber == null || invoiceNumber.isEmpty) {
-      throw Exception('Could not resolve payment checkout URL');
-    }
-    return checkoutUrl(invoiceNumber);
+    if (fromApi != null && fromApi.isNotEmpty) return fromApi;
+    return ApiConfig.irembopayEnvironment;
   }
 
-  /// Prefer the device browser — IremboPay works more reliably there than in WebView.
-  /// Returns a WebView result when in-app checkout is used; [null] when opened externally.
-  static Future<IremboPayCheckoutResult?> openCheckout(
-    BuildContext context,
-    String checkoutUrl, {
-    bool preferExternalBrowser = true,
-  }) async {
-    final uri = Uri.parse(checkoutUrl);
+  static String resolvePublicKey(Map<String, dynamic> invoiceResponse) {
+    final fromApi =
+        (invoiceResponse['publicKey'] ?? invoiceResponse['irembopay_public_key'])
+            ?.toString();
+    if (fromApi != null && fromApi.isNotEmpty) return fromApi;
+    return ApiConfig.ipayPublicKey;
+  }
 
-    if (preferExternalBrowser) {
-      try {
-        final launched = await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
-        );
-        if (launched) return null;
-      } catch (_) {}
+  /// Prefer invoice number + [ApiConfig.hostBase]; ignore backend [checkoutUrl] host
+  /// (Railway may return an internal hostname that is not reachable from the device).
+  static String resolveCheckoutUrl(Map<String, dynamic> invoiceResponse) {
+    final invoiceNumber = invoiceNumberFromResponse(invoiceResponse);
+    if (invoiceNumber != null && invoiceNumber.isNotEmpty) {
+      return checkoutUrl(invoiceNumber);
     }
-
-    if (!context.mounted) return null;
-    return Navigator.of(context).push<IremboPayCheckoutResult>(
-      MaterialPageRoute(
-        builder: (_) => IremboPayCheckoutScreen(checkoutUrl: checkoutUrl),
-      ),
-    );
+    throw Exception('Could not resolve payment checkout URL');
   }
 
   static Future<IremboPayCheckoutResult?> openCheckoutForInvoice(
     BuildContext context,
-    Map<String, dynamic> invoiceResponse, {
-    bool preferExternalBrowser = true,
-  }) {
-    return openCheckout(
-      context,
-      resolveCheckoutUrl(invoiceResponse),
-      preferExternalBrowser: preferExternalBrowser,
+    Map<String, dynamic> invoiceResponse,
+  ) async {
+    final invoiceNumber = invoiceNumberFromResponse(invoiceResponse);
+    if (invoiceNumber == null || invoiceNumber.isEmpty) {
+      throw Exception('Could not resolve payment invoice number');
+    }
+
+    final publicKey = resolvePublicKey(invoiceResponse);
+    if (publicKey.isEmpty) {
+      throw Exception(
+        'IremboPay public key is not configured. Build with '
+        '--dart-define=IPAY_PUBLIC_KEY=pk_... (same as REACT_APP_IPAY_PUBLIC_KEY on ryde-web), '
+        'or set IREMBOPAY_PUBLIC_KEY on the backend.',
+      );
+    }
+
+    final environment = resolveEnvironment(invoiceResponse);
+    final html = IremboPayWidgetHtml.build(
+      publicKey: publicKey,
+      invoiceNumber: invoiceNumber,
+      environment: environment,
+    );
+    final baseUrl = IremboPayWidgetHtml.baseUrlForEnvironment(environment);
+
+    if (!context.mounted) return null;
+    return Navigator.of(context).push<IremboPayCheckoutResult>(
+      MaterialPageRoute(
+        builder: (_) => IremboPayCheckoutScreen(
+          htmlContent: html,
+          baseUrl: baseUrl,
+          invoiceNumber: invoiceNumber,
+        ),
+      ),
     );
   }
 }

@@ -1,7 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:ryde_rw/config/api_config.dart';
+import 'package:ryde_rw/service/irembopay_widget_html.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class IremboPayCheckoutResult {
@@ -25,9 +26,18 @@ class IremboPayCheckoutResult {
 }
 
 class IremboPayCheckoutScreen extends StatefulWidget {
-  final String checkoutUrl;
+  final String? checkoutUrl;
+  final String? htmlContent;
+  final String? baseUrl;
+  final String? invoiceNumber;
 
-  const IremboPayCheckoutScreen({super.key, required this.checkoutUrl});
+  const IremboPayCheckoutScreen({
+    super.key,
+    this.checkoutUrl,
+    this.htmlContent,
+    this.baseUrl,
+    this.invoiceNumber,
+  }) : assert(checkoutUrl != null || htmlContent != null);
 
   @override
   State<IremboPayCheckoutScreen> createState() => _IremboPayCheckoutScreenState();
@@ -68,14 +78,17 @@ class _IremboPayCheckoutScreenState extends State<IremboPayCheckoutScreen> {
           final result = IremboPayCheckoutResult.fromMessage(msg.message);
           if (mounted) Navigator.of(context).pop(result);
         },
-      )
-      ..loadRequest(Uri.parse(widget.checkoutUrl));
-  }
+      );
 
-  Future<void> _openInBrowser() async {
-    final uri = Uri.parse(widget.checkoutUrl);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (mounted) Navigator.of(context).pop();
+    if (widget.htmlContent != null) {
+      _controller.loadHtmlString(
+        widget.htmlContent!,
+        baseUrl: widget.baseUrl ??
+            IremboPayWidgetHtml.baseUrlForEnvironment(ApiConfig.irembopayEnvironment),
+      );
+    } else {
+      _controller.loadRequest(Uri.parse(widget.checkoutUrl!));
+    }
   }
 
   @override
@@ -83,13 +96,6 @@ class _IremboPayCheckoutScreenState extends State<IremboPayCheckoutScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pay Now'),
-        actions: [
-          IconButton(
-            tooltip: 'Open in browser',
-            onPressed: _openInBrowser,
-            icon: const Icon(Icons.open_in_browser),
-          ),
-        ],
       ),
       body: Stack(
         children: [
@@ -115,12 +121,6 @@ class _IremboPayCheckoutScreenState extends State<IremboPayCheckoutScreen> {
                       _loadError!,
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.grey, fontSize: 13),
-                    ),
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: _openInBrowser,
-                      icon: const Icon(Icons.open_in_browser),
-                      label: const Text('Open in browser'),
                     ),
                   ],
                 ),

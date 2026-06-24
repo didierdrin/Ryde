@@ -51,10 +51,10 @@ class _RentalsScreenState extends State<RentalsScreen> {
     try {
       final invoiceRes = await ApiService.createInvoiceForAmount(dailyRate, vehicleRef: id);
       final intentId = (invoiceRes['intentId'] ?? invoiceRes['intent_id'])?.toString();
-      final checkoutUrl = PaymentCheckoutService.resolveCheckoutUrl(invoiceRes);
-
-      if (!mounted) return;
-      final payResult = await PaymentCheckoutService.openCheckout(context, checkoutUrl);
+      final payResult = await PaymentCheckoutService.openCheckoutForInvoice(
+        context,
+        invoiceRes,
+      );
 
       if (!mounted) return;
 
@@ -180,9 +180,10 @@ class _RentalsScreenState extends State<RentalsScreen> {
   String _friendlyPaymentError(Object e) {
     var message = e.toString().replaceFirst('Exception: ', '');
     if (message.toLowerCase().contains('irembopay') &&
-        message.toLowerCase().contains('not configured')) {
-      return 'Payment server is not ready. Use the production backend (default) or '
-          'configure IremboPay on your API server.';
+        (message.toLowerCase().contains('not configured') ||
+            message.toLowerCase().contains('public key'))) {
+      return 'Payment is not configured. Build with --dart-define=IPAY_PUBLIC_KEY=pk_... '
+          '(same as REACT_APP_IPAY_PUBLIC_KEY on ryde-web).';
     }
     return message;
   }

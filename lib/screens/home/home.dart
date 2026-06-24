@@ -319,8 +319,10 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
 
       if (!mounted) return;
 
-      final checkoutUrl = PaymentCheckoutService.resolveCheckoutUrl(invoiceRes);
-      final payResult = await PaymentCheckoutService.openCheckout(context, checkoutUrl);
+      final payResult = await PaymentCheckoutService.openCheckoutForInvoice(
+        context,
+        invoiceRes,
+      );
 
       if (!mounted) return;
 
@@ -341,12 +343,6 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Payment was cancelled or failed. You can try again.')),
         );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Payment opened in your browser. Return here when finished.'),
-          ),
-        );
       }
     } catch (e) {
       if (mounted) {
@@ -354,9 +350,9 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
         if (message.toLowerCase().contains('irembopay') &&
             message.toLowerCase().contains('not configured')) {
           message =
-              'Could not start payment on this API server. The app opens '
-              'https://ryde-backend-production.up.railway.app for checkout — '
-              'run without --dart-define=API_BASE_URL or configure IremboPay on your backend.';
+              'Payment is not configured. For trip payments, build the app with '
+              '--dart-define=IPAY_PUBLIC_KEY=pk_... (same as REACT_APP_IPAY_PUBLIC_KEY on ryde-web). '
+              'If using a local API, configure IremboPay on that backend or remove --dart-define=API_BASE_URL.';
         }
         setState(() {
           _loading = false;
