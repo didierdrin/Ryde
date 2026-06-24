@@ -7,6 +7,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ryde_rw/provider/current_location_provider.dart';
 import 'package:ryde_rw/config/api_config.dart';
 import 'package:ryde_rw/service/payment_checkout_service.dart';
+import 'package:ryde_rw/service/payment_polling_service.dart';
+import 'package:ryde_rw/widgets/payment_confirm_dialog.dart';
 import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/service/realtime_location_tracker.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
@@ -137,26 +139,31 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _confirmTripPayment(String tripId) async {
+    if (!mounted) return;
+    final outcome = await showPaymentConfirmDialog(
+      context,
+      title: 'Trip payment',
+      successMessage: 'Payment successful! Your trip is paid.',
+      poll: () => PaymentPollingService.waitForTripPaymentCompleted(tripId),
+    );
+    if (!mounted) return;
+    if (outcome == 'COMPLETED' || outcome == 'FAILED') {
+      _pendingPaymentTripId = null;
+      if (outcome == 'COMPLETED') {
+        _destinationController.clear();
+        await _loadActiveTripTracking();
+      }
+    }
+  }
+
   Future<void> _checkPendingPaymentIfNeeded() async {
     final tripId = _pendingPaymentTripId;
     if (!mounted || tripId == null) return;
     if (_checkingPendingPayment) return;
     setState(() => _checkingPendingPayment = true);
     try {
-      final outcome = await _waitForTripPaymentCompleted(tripId);
-      if (!mounted) return;
-      final msg = outcome == 'COMPLETED'
-          ? 'Payment successful!'
-          : outcome == 'FAILED'
-              ? 'Payment failed or was cancelled.'
-              : 'Payment is processing. Please check again shortly.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-      if (outcome == 'COMPLETED' || outcome == 'FAILED') {
-        _pendingPaymentTripId = null;
-        if (outcome == 'COMPLETED') {
-          await _loadActiveTripTracking();
-        }
-      }
+      await _confirmTripPayment(tripId);
     } catch (_) {
       // Ignore transient errors on resume; user can retry by resuming again.
     } finally {
@@ -218,18 +225,6 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
     }
   }
 
-  Future<String> _waitForTripPaymentCompleted(String tripId, {int maxMs = 45000}) async {
-    final start = DateTime.now();
-    while (DateTime.now().difference(start).inMilliseconds < maxMs) {
-      final res = await ApiService.getPaymentByTrip(tripId);
-      final payment = (res['payment'] as Map?)?.cast<String, dynamic>() ?? <String, dynamic>{};
-      final status = (payment['payment_status'] ?? '').toString().toUpperCase();
-      if (status == 'COMPLETED') return 'COMPLETED';
-      if (status == 'FAILED') return 'FAILED';
-      await Future.delayed(const Duration(seconds: 2));
-    }
-    return 'TIMEOUT';
-  }
 
   Future<void> _payNow() async {
     final user = ref.read(userProvider);
@@ -328,18 +323,7 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
       if (!mounted) return;
 
       if (payResult?.ok == true) {
-        final outcome = await _waitForTripPaymentCompleted(tripId);
-        if (!mounted) return;
-        final msg = outcome == 'COMPLETED'
-            ? 'Payment successful!'
-            : outcome == 'FAILED'
-                ? 'Payment failed or was cancelled.'
-                : 'Payment is processing. Please check again shortly.';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-        if (outcome == 'COMPLETED' || outcome == 'FAILED') {
-          _pendingPaymentTripId = null;
-        }
-        _destinationController.clear();
+        await _confirmTripPayment(tripId);
       } else if (payResult?.ok == false) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Payment was cancelled or failed. You can try again.')),

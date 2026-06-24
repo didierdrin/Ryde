@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ryde_rw/service/payment_checkout_service.dart';
+import 'package:ryde_rw/service/payment_polling_service.dart';
+import 'package:ryde_rw/widgets/payment_confirm_dialog.dart';
 import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/utils.dart';
@@ -15,15 +17,61 @@ class RentalsScreen extends StatefulWidget {
   State<RentalsScreen> createState() => _RentalsScreenState();
 }
 
-class _RentalsScreenState extends State<RentalsScreen> {
+class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserver {
   List<dynamic> _vehicles = [];
   bool _loading = true;
   String? _payingId;
+  String? _pendingRentalIntentId;
+  String? _pendingVehicleLabel;
+  bool _checkingPendingPayment = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPendingRentalPaymentIfNeeded();
+    }
+  }
+
+  Future<void> _confirmRentalPayment(String intentId, String vehicleLabel) async {
+    if (!mounted) return;
+    final outcome = await showPaymentConfirmDialog(
+      context,
+      title: 'Rental payment',
+      successMessage: 'Booking confirmed for $vehicleLabel. Payment successful!',
+      poll: () => PaymentPollingService.waitForRentalIntentCompleted(intentId),
+    );
+    if (!mounted) return;
+    if (outcome == 'COMPLETED' || outcome == 'FAILED') {
+      _pendingRentalIntentId = null;
+      _pendingVehicleLabel = null;
+    }
+  }
+
+  Future<void> _checkPendingRentalPaymentIfNeeded() async {
+    final intentId = _pendingRentalIntentId;
+    final label = _pendingVehicleLabel ?? 'your vehicle';
+    if (!mounted || intentId == null) return;
+    if (_checkingPendingPayment) return;
+    setState(() => _checkingPendingPayment = true);
+    try {
+      await _confirmRentalPayment(intentId, label);
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _checkingPendingPayment = false);
+    }
   }
 
   Future<void> _load() async {
@@ -51,6 +99,12 @@ class _RentalsScreenState extends State<RentalsScreen> {
     try {
       final invoiceRes = await ApiService.createInvoiceForAmount(dailyRate, vehicleRef: id);
       final intentId = (invoiceRes['intentId'] ?? invoiceRes['intent_id'])?.toString();
+      final vehicleLabel = '${vehicle['make']} ${vehicle['model']}';
+      if (intentId != null && intentId.isNotEmpty) {
+        _pendingRentalIntentId = intentId;
+        _pendingVehicleLabel = vehicleLabel;
+      }
+
       final payResult = await PaymentCheckoutService.openCheckoutForInvoice(
         context,
         invoiceRes,
@@ -58,17 +112,18 @@ class _RentalsScreenState extends State<RentalsScreen> {
 
       if (!mounted) return;
 
-      if (payResult?.ok == true) {
+      if (payResult?.ok == true && intentId != null && intentId.isNotEmpty) {
+        await _confirmRentalPayment(intentId, vehicleLabel);
+      } else if (payResult?.ok == false) {
+        _pendingRentalIntentId = null;
+        _pendingVehicleLabel = null;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: kGreen,
-            content: Text('Booking confirmed for ${vehicle['make']} ${vehicle['model']}'),
-          ),
+          const SnackBar(content: Text('Payment was cancelled or failed.')),
         );
       } else if (intentId != null && intentId.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Complete payment in your browser, then return to the app.'),
+            content: Text('Payment opened in your browser. Return here when finished.'),
           ),
         );
       }
