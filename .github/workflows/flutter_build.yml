@@ -41,18 +41,12 @@ jobs:
       run: flutter pub get
 
     - name: Build Android APK
-      run: |
-        flutter build apk --release --no-tree-shake-icons \
-          --dart-define=IPAY_PUBLIC_KEY=${{ secrets.IPAY_PUBLIC_KEY }} \
-          --dart-define=IREMBOPAY_ENVIRONMENT=${{ vars.IREMBOPAY_ENVIRONMENT }}
+      run: flutter build apk --release --no-tree-shake-icons
       env:
         FLUTTER_BUILD_MODE: release
 
     - name: Build Android App Bundle
-      run: |
-        flutter build appbundle --release --no-tree-shake-icons \
-          --dart-define=IPAY_PUBLIC_KEY=${{ secrets.IPAY_PUBLIC_KEY }} \
-          --dart-define=IREMBOPAY_ENVIRONMENT=${{ vars.IREMBOPAY_ENVIRONMENT }}
+      run: flutter build appbundle --release --no-tree-shake-icons
       env:
         FLUTTER_BUILD_MODE: release
 

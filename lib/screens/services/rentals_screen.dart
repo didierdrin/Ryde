@@ -180,10 +180,9 @@ class _RentalsScreenState extends State<RentalsScreen> {
   String _friendlyPaymentError(Object e) {
     var message = e.toString().replaceFirst('Exception: ', '');
     if (message.toLowerCase().contains('irembopay') &&
-        (message.toLowerCase().contains('not configured') ||
-            message.toLowerCase().contains('public key'))) {
-      return 'Payment is not configured. Build with --dart-define=IPAY_PUBLIC_KEY=pk_... '
-          '(same as REACT_APP_IPAY_PUBLIC_KEY on ryde-web).';
+        message.toLowerCase().contains('not configured')) {
+      return 'Payment is not configured on the API server. Set IREMBOPAY_PUBLIC_KEY on '
+          'the backend or use the production API (default, no --dart-define=API_BASE_URL).';
     }
     return message;
   }

@@ -1,7 +1,7 @@
 /// Backend API configuration for the mobile app.
 ///
-/// **Default:** production Railway API. Payments use the IremboPay inline widget
-/// in a WebView (same as ryde-web), not the backend-hosted checkout page.
+/// **Default:** production Railway. Trip/rental payments open
+/// `{API host}/api/payments/checkout/{invoiceNumber}` in the device browser.
 class ApiConfig {
   static const String productionBaseUrl =
       'https://ryde-backend-production.up.railway.app/api';
@@ -10,19 +10,6 @@ class ApiConfig {
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: productionBaseUrl,
-  );
-
-  /// IremboPay widget public key (`pk_…`). Same as ryde-web `REACT_APP_IPAY_PUBLIC_KEY`.
-  /// Override with `--dart-define=IPAY_PUBLIC_KEY=pk_...`
-  static const String ipayPublicKey = String.fromEnvironment(
-    'IPAY_PUBLIC_KEY',
-    defaultValue: '',
-  );
-
-  /// `sandbox`, `checkout`, or `production` — must match the public key.
-  static const String irembopayEnvironment = String.fromEnvironment(
-    'IREMBOPAY_ENVIRONMENT',
-    defaultValue: 'sandbox',
   );
 
   static String get hostBase =>

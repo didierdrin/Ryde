@@ -5,6 +5,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ryde_rw/provider/current_location_provider.dart';
+import 'package:ryde_rw/config/api_config.dart';
 import 'package:ryde_rw/service/payment_checkout_service.dart';
 import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/service/realtime_location_tracker.dart';
@@ -343,6 +344,12 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Payment was cancelled or failed. You can try again.')),
         );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payment opened in your browser. Return here when finished.'),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -350,9 +357,9 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
         if (message.toLowerCase().contains('irembopay') &&
             message.toLowerCase().contains('not configured')) {
           message =
-              'Payment is not configured. For trip payments, build the app with '
-              '--dart-define=IPAY_PUBLIC_KEY=pk_... (same as REACT_APP_IPAY_PUBLIC_KEY on ryde-web). '
-              'If using a local API, configure IremboPay on that backend or remove --dart-define=API_BASE_URL.';
+              'Payment is not configured on this API server. Set IREMBOPAY_PUBLIC_KEY '
+              '(and secret keys) on the backend, or run without --dart-define=API_BASE_URL '
+              'to use ${ApiConfig.productionBaseUrl.replaceAll('/api', '')}.';
         }
         setState(() {
           _loading = false;
