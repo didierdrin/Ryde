@@ -98,6 +98,24 @@ class ApiService {
     return await _handleResponse(response);
   }
 
+  static Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/auth/profile'),
+      headers: await _getHeaders(),
+      body: json.encode(data),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> updatePassengerProfile(Map<String, dynamic> data) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/passengers/profile'),
+      headers: await _getHeaders(),
+      body: json.encode(data),
+    );
+    return await _handleResponse(response);
+  }
+
   // Passenger endpoints
   static Future<Map<String, dynamic>> getPassengerProfile() async {
     final response = await http.get(
@@ -122,6 +140,24 @@ class ApiService {
     final response = await http.get(
       Uri.parse('$baseUrl/drivers/profile'),
       headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> updateDriverProfile(Map<String, dynamic> data) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/drivers/profile'),
+      headers: await _getHeaders(),
+      body: json.encode(data),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> updateVehicle(Map<String, dynamic> data) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/drivers/vehicle'),
+      headers: await _getHeaders(),
+      body: json.encode(data),
     );
     return await _handleResponse(response);
   }

@@ -31,6 +31,7 @@ class TripDetailScreen extends ConsumerStatefulWidget {
   final double? destLat;
   final double? destLng;
   final User user;
+  final String? passengerUserId;
 
   const TripDetailScreen({
     super.key,
@@ -45,6 +46,7 @@ class TripDetailScreen extends ConsumerStatefulWidget {
     this.destLat,
     this.destLng,
     required this.user,
+    this.passengerUserId,
   });
 
   factory TripDetailScreen.fromTripMap({
@@ -63,6 +65,9 @@ class TripDetailScreen extends ConsumerStatefulWidget {
       destLat: tripDouble(trip, 'destinationLatitude'),
       destLng: tripDouble(trip, 'destinationLongitude'),
       user: user,
+      passengerUserId: tripStr(trip, 'passengerUserId').isEmpty
+          ? null
+          : tripStr(trip, 'passengerUserId'),
     );
   }
 
@@ -245,6 +250,46 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     }
   }
 
+  Future<void> _joinRide() async {
+    if (widget.pickupLat == null || widget.pickupLng == null || widget.destLat == null || widget.destLng == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip location data is incomplete')));
+      return;
+    }
+    setState(() => _actionLoading = true);
+    try {
+      final distance = 5.0;
+      final fare = widget.fare is num ? (widget.fare as num).toDouble() : 1500.0;
+      await ApiService.requestTrip({
+        'pickupLatitude': widget.pickupLat,
+        'pickupLongitude': widget.pickupLng,
+        'pickupAddress': widget.pickupAddress,
+        'destinationLatitude': widget.destLat,
+        'destinationLongitude': widget.destLng,
+        'destinationAddress': widget.destinationAddress,
+        'distance': distance,
+        'fare': fare,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ride requested — check My Trips after payment')),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _actionLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
+
+  bool get _canJoinAsPassenger {
+    if (!widget.user.isPassenger || _status != 'REQUESTED') return false;
+    final ownerId = widget.passengerUserId;
+    if (ownerId == null || ownerId.isEmpty) return false;
+    return ownerId != widget.user.id;
+  }
+
   @override
   Widget build(BuildContext context) {
     final lat = widget.pickupLat ?? -1.9441;
@@ -301,6 +346,18 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                   Text('Status: $_status'),
                   if (widget.fare != null) Text('Fare: ${widget.fare} RWF'),
                   const SizedBox(height: 24),
+                  if (_canJoinAsPassenger)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _actionLoading ? null : _joinRide,
+                        style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
+                        child: _actionLoading
+                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Text('Join this ride'),
+                      ),
+                    ),
+                  if (_canJoinAsPassenger) const SizedBox(height: 8),
                   if (isDriver && _status == 'REQUESTED')
                     SizedBox(
                       width: double.infinity,

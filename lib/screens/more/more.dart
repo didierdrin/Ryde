@@ -4,7 +4,8 @@ import 'package:ryde_rw/components/widgets/build_list.dart';
 import 'package:ryde_rw/screens/more/change_language.dart';
 import 'package:ryde_rw/screens/more/manage_address.dart';
 import 'package:ryde_rw/screens/more/privacy_policy.dart';
-import 'package:ryde_rw/screens/more/profile_simple.dart';
+import 'package:ryde_rw/screens/more/profile_edit_screen.dart';
+import 'package:ryde_rw/widgets/trip_list_avatar.dart';
 import 'package:ryde_rw/screens/more/support.dart';
 import 'package:ryde_rw/screens/services/services_hub_screen.dart';
 import 'package:ryde_rw/screens/signin_signup.dart';
@@ -138,7 +139,7 @@ class More extends ConsumerWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const ProfileSimple(),
+                                builder: (context) => const ProfileEditScreen(),
                               ),
                             );
                           },
@@ -164,17 +165,17 @@ class More extends ConsumerWidget {
                                     size: 20,
                                   ),
                                   SizedBox(width: 5),
-                                  Text("View Profile"),
+                                  Text("Edit Profile"),
                                 ],
                               ),
                             ],
                           ),
                         ),
                         Spacer(),
-                        CircleAvatar(
+                        TripListAvatar(
+                          imageUrl: user.profilePictureUrl,
                           radius: 36,
-                          backgroundColor: primaryColor.withOpacity(0.2),
-                          child: Icon(Icons.person, size: 36, color: primaryColor),
+                          fallbackColor: primaryColor,
                         ),
                       ],
                     ),

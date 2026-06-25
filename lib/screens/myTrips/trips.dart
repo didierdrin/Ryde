@@ -6,6 +6,7 @@ import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/service/realtime_location_tracker.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/widgets/nearby_trips_list.dart';
+import 'package:ryde_rw/widgets/trip_list_avatar.dart';
 
 class Trips extends ConsumerStatefulWidget {
   const Trips({super.key});
@@ -109,10 +110,17 @@ class _TripsState extends ConsumerState<Trips> {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: statusColor.withOpacity(0.12),
-          child: Icon(Icons.local_taxi, color: statusColor),
-        ),
+        leading: user.isDriver
+            ? TripListAvatar(
+                imageUrl: tripVehicleImage(t),
+                fallbackIcon: Icons.directions_car,
+                fallbackColor: statusColor,
+              )
+            : TripListAvatar(
+                imageUrl: tripProfileImage(t) ?? user.profilePictureUrl,
+                fallbackIcon: Icons.person,
+                fallbackColor: statusColor,
+              ),
         title: Row(
           children: [
             Expanded(
@@ -195,8 +203,6 @@ class _TripsState extends ConsumerState<Trips> {
       );
     }
 
-    final isDriver = user.isDriver;
-
     Widget tripsBody() {
       if (_loading) return const Center(child: CircularProgressIndicator());
       if (_error != null) {
@@ -226,7 +232,7 @@ class _TripsState extends ConsumerState<Trips> {
       );
     }
 
-    if (!isDriver) {
+    if (user.isAdmin) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('My Trips'),
@@ -245,6 +251,8 @@ class _TripsState extends ConsumerState<Trips> {
       );
     }
 
+    final nearbyTabLabel = user.isDriver ? 'Nearby Passengers' : 'Nearby Rides';
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
@@ -260,10 +268,10 @@ class _TripsState extends ConsumerState<Trips> {
               },
             ),
           ],
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'My Trips'),
-              Tab(text: 'Nearby Passengers'),
+              const Tab(text: 'My Trips'),
+              Tab(text: nearbyTabLabel),
             ],
           ),
         ),

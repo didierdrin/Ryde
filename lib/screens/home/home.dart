@@ -472,11 +472,15 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
                           padding: const EdgeInsets.all(16),
                           children: [
                             const SizedBox(height: 8),
-                            Text(
-                              'Get a ride',
-                              style: Theme.of(context).textTheme.titleLarge,
+                            Center(
+                              child: Text(
+                                'Get a ride',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 6),
+                            const Divider(height: 1),
+                            const SizedBox(height: 6),
                             TextField(
                               controller: _pickupController,
                               decoration: InputDecoration(

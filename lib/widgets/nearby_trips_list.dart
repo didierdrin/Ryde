@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ryde_rw/models/user.dart';
 import 'package:ryde_rw/service/nearby_trips_service.dart';
 import 'package:ryde_rw/service/realtime_location_tracker.dart';
+import 'package:ryde_rw/widgets/trip_list_avatar.dart';
 
 class NearbyTripsList extends ConsumerStatefulWidget {
   final User user;
@@ -117,9 +118,10 @@ class NearbyTripsListState extends ConsumerState<NearbyTripsList> {
           return Card(
             margin: const EdgeInsets.only(bottom: 10),
             child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.orange.withOpacity(0.12),
-                child: const Icon(Icons.person_pin_circle, color: Colors.orange),
+              leading: TripListAvatar(
+                imageUrl: tripProfileImage(t),
+                fallbackIcon: Icons.person_pin_circle,
+                fallbackColor: Colors.orange,
               ),
               title: Text(
                 passengerName.isEmpty ? 'Passenger request' : passengerName,

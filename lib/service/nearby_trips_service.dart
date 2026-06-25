@@ -2,13 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ryde_rw/provider/current_location_provider.dart';
 import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/service/realtime_location_tracker.dart';
+import 'package:ryde_rw/shared/shared_states.dart';
 
-/// Loads open passenger ride requests for drivers, nearest first.
+/// Loads open passenger ride requests, nearest first.
 class NearbyTripsService {
   static Future<List<Map<String, dynamic>>> load(WidgetRef ref) async {
-    try {
-      await ApiService.toggleDriverAvailability(true);
-    } catch (_) {}
+    final user = ref.read(userProvider);
+    if (user?.isDriver == true) {
+      try {
+        await ApiService.toggleDriverAvailability(true);
+      } catch (_) {}
+    }
 
     final location = await ref.read(currentLocationProvider.future);
     final res = await ApiService.getAvailableTrips(
