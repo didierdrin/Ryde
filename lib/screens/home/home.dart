@@ -13,6 +13,8 @@ import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/service/realtime_location_tracker.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
+import 'package:ryde_rw/screens/trips/trip_detail_screen.dart';
+import 'package:ryde_rw/widgets/nearby_trips_list.dart';
 import 'package:ryde_rw/utils/contants.dart';
 
 class Home extends ConsumerStatefulWidget {
@@ -33,6 +35,7 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
   bool _checkingPendingPayment = false;
   final _tracker = RealtimeLocationTracker();
   Map<String, dynamic>? _liveLocations;
+  final _nearbyKey = GlobalKey<NearbyTripsListState>();
 
   @override
   void initState() {
@@ -45,7 +48,22 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
     final user = ref.read(userProvider);
     if (user == null) return;
     await _tracker.startUploading(isDriver: user.isDriver);
+    if (user.isDriver) {
+      try {
+        await ApiService.toggleDriverAvailability(true);
+      } catch (_) {}
+      _nearbyKey.currentState?.reload();
+    }
     await _loadActiveTripTracking();
+  }
+
+  void _openNearbyTrip(Map<String, dynamic> trip) {
+    final user = ref.read(userProvider);
+    if (user == null) return;
+    openTripDetail(context, user, trip).then((_) {
+      _nearbyKey.currentState?.reload();
+      _loadActiveTripTracking();
+    });
   }
 
   Future<void> _loadActiveTripTracking() async {
@@ -402,105 +420,135 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
               ),
             SafeArea(
               child: DraggableScrollableSheet(
-                initialChildSize: 0.35,
-                minChildSize: 0.2,
-                maxChildSize: 0.5,
+                initialChildSize: user.isDriver ? 0.45 : 0.35,
+                minChildSize: user.isDriver ? 0.25 : 0.2,
+                maxChildSize: user.isDriver ? 0.85 : 0.5,
                 builder: (context, scrollController) => Container(
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                   ),
-                  child: ListView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      const SizedBox(height: 8),
-                      Text(
-                        user.isPassenger ? 'Get a ride' : 'Your trips',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      if (user.isPassenger) ...[
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _pickupController,
-                          decoration: InputDecoration(
-                            labelText: 'Pickup',
-                            border: const OutlineInputBorder(),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.my_location),
-                              onPressed: _useCurrentLocation,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _destinationController,
-                          decoration: const InputDecoration(
-                            labelText: 'Destination',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        if (_error != null) ...[
-                          const SizedBox(height: 8),
-                          Text(_error!, style: const TextStyle(color: Colors.red)),
-                        ],
-                        const SizedBox(height: 16),
-                        InputDecorator(
-                          decoration: const InputDecoration(
-                            labelText: 'Service',
-                            border: OutlineInputBorder(),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedService,
-                              isExpanded: true,
-                              items: vehicleTypes.map((t) {
-                                return DropdownMenuItem<String>(
-                                  value: t,
-                                  child: Row(
-                                    children: [
-                                      Image.asset(iconPath(t), width: 22, height: 22),
-                                      const SizedBox(width: 10),
-                                      Text(t),
-                                    ],
+                  child: user.isDriver
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'Nearby ride requests',
+                                      style: Theme.of(context).textTheme.titleLarge,
+                                    ),
                                   ),
-                                );
-                              }).toList(),
-                              onChanged: _loading ? null : (v) {
-                                if (v == null) return;
-                                setState(() => _selectedService = v);
-                              },
+                                  IconButton(
+                                    icon: const Icon(Icons.refresh),
+                                    onPressed: () => _nearbyKey.currentState?.reload(),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _loading ? null : _payNow,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(
+                                'Nearest passenger requests first. Accepted trips move to My Trips.',
+                                style: TextStyle(fontSize: 13, color: Colors.black54),
+                              ),
                             ),
-                            child: _loading
-                                ? const SizedBox(
-                                    height: 22,
-                                    width: 22,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  )
-                                : const Text('Pay Now', style: TextStyle(color: Colors.white),),
-                          ),
+                            const SizedBox(height: 8),
+                            Expanded(
+                              child: NearbyTripsList(
+                                key: _nearbyKey,
+                                user: user,
+                                onTripTap: _openNearbyTrip,
+                                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                              ),
+                            ),
+                          ],
+                        )
+                      : ListView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.all(16),
+                          children: [
+                            const SizedBox(height: 8),
+                            Text(
+                              'Get a ride',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _pickupController,
+                              decoration: InputDecoration(
+                                labelText: 'Pickup',
+                                border: const OutlineInputBorder(),
+                                suffixIcon: IconButton(
+                                  icon: const Icon(Icons.my_location),
+                                  onPressed: _useCurrentLocation,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: _destinationController,
+                              decoration: const InputDecoration(
+                                labelText: 'Destination',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            if (_error != null) ...[
+                              const SizedBox(height: 8),
+                              Text(_error!, style: const TextStyle(color: Colors.red)),
+                            ],
+                            const SizedBox(height: 16),
+                            InputDecorator(
+                              decoration: const InputDecoration(
+                                labelText: 'Service',
+                                border: OutlineInputBorder(),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedService,
+                                  isExpanded: true,
+                                  items: vehicleTypes.map((t) {
+                                    return DropdownMenuItem<String>(
+                                      value: t,
+                                      child: Row(
+                                        children: [
+                                          Image.asset(iconPath(t), width: 22, height: 22),
+                                          const SizedBox(width: 10),
+                                          Text(t),
+                                        ],
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: _loading ? null : (v) {
+                                    if (v == null) return;
+                                    setState(() => _selectedService = v);
+                                  },
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _loading ? null : _payNow,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryColor,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                ),
+                                child: _loading
+                                    ? const SizedBox(
+                                        height: 22,
+                                        width: 22,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                      )
+                                    : const Text('Pay Now', style: TextStyle(color: Colors.white),),
+                              ),
+                            ),
+                          ],
                         ),
-                      ] else
-                        Padding(
-                          padding: const EdgeInsets.only(top: 16),
-                          child: Text(
-                            'Open Trips tab to see and accept ride requests.',
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ),
-                    ],
-                  ),
                 ),
               ),
             ),
