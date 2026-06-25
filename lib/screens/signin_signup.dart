@@ -127,7 +127,12 @@ class SigninSignupState extends ConsumerState<SigninSignup> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Colors.white, Colors.black],
+              colors: [
+                Colors.white,
+                Color(0xFF9E9E9E),
+                Colors.black,
+              ],
+              stops: [0.0, 0.62, 1.0],
             ),
           ),
           child: Scaffold(
