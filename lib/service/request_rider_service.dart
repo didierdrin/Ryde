@@ -1,178 +1,115 @@
-import 'package:ryde_rw/firestore_stub.dart';
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ryde_rw/models/request_model.dart';
+import 'package:ryde_rw/service/api_service.dart';
+import 'package:ryde_rw/service/trip_pool_mapper.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
-import 'package:ryde_rw/utils/contants.dart';
+
+const _pollInterval = Duration(seconds: 15);
 
 class RequestRideService {
-  static final collection = FirebaseFirestore.instance.collection(
-    collections.request,
-  );
-
   static Future<void> createRequestRide(RequestRide requestRide) async {
-    try {
-      print(requestRide.toMap());
-      final docRef = requestRide.id != null && requestRide.id!.isNotEmpty
-          ? collection.doc(requestRide.id)
-          : collection.doc();
+    final res = await ApiService.requestTrip(requestRideToTripPayload(requestRide));
+    final trip = res['trip'] as Map<String, dynamic>?;
+    requestRide.id = trip?['tripId']?.toString() ?? trip?['trip_id']?.toString();
+  }
 
-      if (requestRide.id == null || requestRide.id!.isEmpty) {
-        requestRide = RequestRide(
-          id: docRef.id,
-          rider: requestRide.rider,
-          pickupLocation: requestRide.pickupLocation,
-          dropoffLocation: requestRide.dropoffLocation,
-          requestedTime: requestRide.requestedTime,
-          requestedBy: requestRide.requestedBy,
-          createdAt: requestRide.createdAt,
-          offerpool: requestRide.offerpool,
-          rejected: requestRide.rejected,
-          accepted: requestRide.accepted,
-          paid: requestRide.paid,
-          pickup: requestRide.pickup,
-          dropoff: requestRide.dropoff,
-          seats: requestRide.seats,
-          price: requestRide.price,
-          completed: requestRide.completed,
-          cancelled: requestRide.cancelled,
-          measure: requestRide.measure,
-          quantity: requestRide.quantity,
-          type: requestRide.type,
-          countryCode: requestRide.countryCode,
-          requested: requestRide.requested,
-          notificationId: requestRide.notificationId,
-          isDriverNotified: requestRide.isDriverNotified,
-          isPassengerNotified: requestRide.isPassengerNotified,
-        );
-      }
-
-      await docRef.set(requestRide.toMap());
-    } catch (e) {
-      throw Exception("Failed to create RequestRide: $e");
+  static Future<void> updateRequestRide(String id, Map<String, dynamic> data) async {
+    if (data['cancelled'] == true || data['rejected'] == true) {
+      await ApiService.cancelTrip(id);
     }
   }
 
-  static Future<void> updateRequestRide(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
-    try {
-      await collection.doc(id).update(data);
-    } catch (e) {
-      throw Exception("Failed to update RequestRide: $e");
+  static Stream<T?> _pollSingle<T>(Future<T?> Function() fetch) async* {
+    while (true) {
+      try {
+        yield await fetch();
+      } catch (_) {
+        yield null;
+      }
+      await Future.delayed(_pollInterval);
+    }
+  }
+
+  static Stream<List<T>> _pollList<T>(Future<List<T>> Function() fetch) async* {
+    while (true) {
+      try {
+        yield await fetch();
+      } catch (_) {
+        yield [];
+      }
+      await Future.delayed(_pollInterval);
     }
   }
 
   static final requestRideStreamProvider =
       StreamProvider.family<RequestRide?, String>((ref, id) {
-        return collection.doc(id).snapshots().map((snapshot) {
-          if (snapshot.exists && snapshot.data() != null) {
-            final data = snapshot.data()!;
-            data['id'] = snapshot.id;
-            return RequestRide.fromMap(data);
-          }
-          return null;
-        });
-      });
+    return _pollSingle(() async {
+      final res = await ApiService.getTripById(id);
+      final trip = res['trip'] as Map<String, dynamic>?;
+      if (trip == null) return null;
+      return tripJsonToRequestRide(trip);
+    });
+  });
 
-  static final allRequestRideStreamProvider = StreamProvider<List<RequestRide>>(
-    (ref) {
-      // final region = ref.watch(regionProvider)!;
-      return collection          
-          .snapshots()
-          .map((querySnapshot) {
-            return querySnapshot.docs.map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id;
-              return RequestRide.fromMap(data);
-            }).toList();
-          });
-    },
-  );
+  static final allRequestRideStreamProvider = StreamProvider<List<RequestRide>>((ref) {
+    return _pollList(() async {
+      final res = await ApiService.getMyTrips();
+      return tripsFromResponse(res).map(tripJsonToRequestRide).toList();
+    });
+  });
 
   static final ridesForRiderProvider =
       StreamProvider.family<List<RequestRide>, String>((ref, riderId) {
-        final user = ref.watch(userProvider)!;
-        return collection
-            .where('rider', isEqualTo: riderId)
-            .snapshots()
-            .map((querySnapshot) {
-              return querySnapshot.docs.map((doc) {
-                final data = doc.data();
-                data['id'] = doc.id;
-                return RequestRide.fromMap(data);
-              }).toList();
-            });
-      });
+    return _pollList(() async {
+      final res = await ApiService.getMyTrips();
+      return tripsFromResponse(res)
+          .map(tripJsonToRequestRide)
+          .where((ride) => ride.rider == riderId)
+          .toList();
+    });
+  });
 
   static final ridesRequestedByUserProvider =
-      StreamProvider.family<List<RequestRide>, String>((ref, requestedbyId) {
-        final user = ref.watch(userProvider)!;
-        return collection
-            .where('requestedBy', isEqualTo: requestedbyId)
-            .snapshots()
-            .map((querySnapshot) {
-              return querySnapshot.docs.map((doc) {
-                final data = doc.data();
-                data['id'] = doc.id;
-                return RequestRide.fromMap(data);
-              }).toList();
-            });
-      });
+      StreamProvider.family<List<RequestRide>, String>((ref, requestedById) {
+    return _pollList(() async {
+      final res = await ApiService.getMyTrips();
+      return tripsFromResponse(res)
+          .map(tripJsonToRequestRide)
+          .where((ride) => ride.requestedBy == requestedById)
+          .toList();
+    });
+  });
 
   static final offerpoolsForRiderProvider =
-      StreamProvider.family<List<RequestRide>, String>((ref, offerpoolid) {
-        final user = ref.watch(userProvider)!;
-        return collection
-            .where('offerpool', isEqualTo: offerpoolid)
-            .snapshots()
-            .map((querySnapshot) {
-              return querySnapshot.docs.map((doc) {
-                final data = doc.data();
-                data['id'] = doc.id;
-                return RequestRide.fromMap(data);
-              }).toList();
-            });
-      });
+      StreamProvider.family<List<RequestRide>, String>((ref, offerPoolId) {
+    return _pollList(() async {
+      final res = await ApiService.getTripById(offerPoolId);
+      final trip = res['trip'] as Map<String, dynamic>?;
+      if (trip == null) return [];
+      return [tripJsonToRequestRide(trip)];
+    });
+  });
 
-  static final diplayPassengerNearYou = StreamProvider<List<RequestRide>>((
-    ref,
-  ) {
-    final user = ref.read(userProvider)!;
+  static final diplayPassengerNearYou = StreamProvider<List<RequestRide>>((ref) {
     final location = ref.read(locationProvider);
-    return collection
-        .where('completed', isEqualTo: false)
-        .where('accepted', isEqualTo: false)
-        .where('cancelled', isEqualTo: false)
-        .snapshots()
-        .map((querySnapshot) {
-          final List<RequestRide> passengers = querySnapshot.docs.map((doc) {
-            final data = doc.data();
-            data['id'] = doc.id;
-            return RequestRide.fromMap(data);
-          }).toList();
-
-          final List<RequestRide> nearbyPassengers = passengers.where((
-            passenger,
-          ) {
-            final double distance =
-                Geolocator.distanceBetween(
-                  location['lat'],
-                  location['long'],
-                  passenger.pickupLocation.latitude,
-                  passenger.pickupLocation.longitude,
-                ) /
-                1000;
-
-            return distance <= 3 &&
-                !passenger.accepted &&
-                passenger.rider.isEmpty &&
-                !passenger.cancelled;
-          }).toList();
-
-          return nearbyPassengers;
-        });
+    return _pollList(() async {
+      final res = await ApiService.getAvailableTrips(location['lat'], location['long']);
+      return tripsFromResponse(res).map(tripJsonToRequestRide).where((passenger) {
+        final distance = Geolocator.distanceBetween(
+              location['lat'],
+              location['long'],
+              passenger.pickupLocation.latitude,
+              passenger.pickupLocation.longitude,
+            ) /
+            1000;
+        return distance <= 3 &&
+            !passenger.accepted &&
+            passenger.rider.isEmpty &&
+            !passenger.cancelled;
+      }).toList();
+    });
   });
 }
-

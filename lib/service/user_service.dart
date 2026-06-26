@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ryde_rw/models/user.dart';
 import 'package:ryde_rw/utils/contants.dart';
-import 'firebase_storage.dart';
+import 'image_upload_service.dart';
 
 class UserService {
   static String collection = collections.users;
@@ -56,7 +56,7 @@ class UserService {
   }) async {
     try {
       if (file != null && fileField != null && storageFolder != null) {
-        final fileUrl = await FirebaseStorageService.uploadImage(
+        final fileUrl = await ImageUploadService.uploadImage(
           file,
           storageFolder,
         );

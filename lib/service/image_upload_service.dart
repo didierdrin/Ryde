@@ -1,9 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-/// Image upload: converts to base64 data URL (no Firebase).
-/// Store the returned string in Neon/API as needed.
-class FirebaseStorageService {
+/// Image upload via base64 data URLs (stored in Neon/API profile fields).
+class ImageUploadService {
   static Future<String> uploadImage(File image, String folderName) async {
     try {
       final bytes = await image.readAsBytes();
@@ -24,18 +24,17 @@ class FirebaseStorageService {
 
   static Future<List<String>> uploadImagesList(
       List<File> images, String folderName) async {
-    List<String> urls = [];
+    final urls = <String>[];
     for (final image in images) {
-      final url = await uploadImage(image, folderName);
-      urls.add(url);
+      urls.add(await uploadImage(image, folderName));
     }
     return urls;
   }
 
-  static Future<String?> uploadFileToFirebaseStorage(File file, String path) async {
+  static Future<String?> uploadFile(File file, String path) async {
     try {
       return await uploadImage(file, path);
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }

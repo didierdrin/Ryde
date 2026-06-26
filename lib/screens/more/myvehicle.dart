@@ -6,7 +6,7 @@ import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:ryde_rw/components/widgets/button_bar.dart';
 import 'package:ryde_rw/components/widgets/text_field.dart';
 import 'package:ryde_rw/models/vehicle_model.dart';
-import 'package:ryde_rw/service/firebase_storage.dart';
+import 'package:ryde_rw/service/image_upload_service.dart';
 import 'package:ryde_rw/service/vehicle_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';

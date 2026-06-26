@@ -12,6 +12,7 @@ import 'package:ryde_rw/components/widgets/location_input_field.dart';
 import 'package:ryde_rw/components/widgets/dropoff_location_input_field.dart';
 import 'package:ryde_rw/models/request_model.dart';
 import 'package:ryde_rw/service/request_rider_service.dart';
+import 'package:ryde_rw/service/offer_pool_service.dart';
 import 'package:ryde_rw/service/order_service.dart';
 import 'package:ryde_rw/shared/locations_shared.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
@@ -206,21 +207,14 @@ class FindPoolState extends ConsumerState<FindPool> {
       final upperBound = Timestamp.fromDate(parsedDate.add(Duration(hours: 1)));
 
       // Query for duplicate requests matching the criteria:
-      final duplicateQuery = await FirebaseFirestore.instance
-          .collection(
-            collections.request,
-          ) // Ensure this is the same collection name as in your RequestRideService
-          .where('pickupLocation.address', isEqualTo: pickup!.address)
-          .where('dropoffLocation.address', isEqualTo: dropOff!.address)
-          .where(
-            'requestedBy',
-            isEqualTo: user.id,
-          ) // check for duplicates only for this user
-          .where('requestedTime', isGreaterThanOrEqualTo: lowerBound)
-          .where('requestedTime', isLessThanOrEqualTo: upperBound)
-          .get();
+      final duplicateExists = await OfferPoolService.hasDuplicateTrip(
+        userId: user.id,
+        pickup: pickup!,
+        dropoff: dropOff!,
+        dateTime: parsedDate,
+      );
 
-      if (duplicateQuery.docs.isNotEmpty) {
+      if (duplicateExists) {
         // Show an error message if a duplicate is found
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

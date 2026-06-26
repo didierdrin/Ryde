@@ -100,16 +100,14 @@ class OfferPoolState extends ConsumerState<OfferPool> {
       final upperBound = Timestamp.fromDate(parsedDate.add(Duration(hours: 1)));
 
       // Query Firestore for any existing offer pool by the same driver that matches the criteria.
-      final duplicateQuery = await FirebaseFirestore.instance
-          .collection(collections.offerpool)
-          .where('user', isEqualTo: user.id)
-          .where('pickupLocation.address', isEqualTo: pickup!.address)
-          .where('dropoffLocation.address', isEqualTo: dropOff!.address)
-          .where('dateTime', isGreaterThanOrEqualTo: lowerBound)
-          .where('dateTime', isLessThanOrEqualTo: upperBound)
-          .get();
+      final duplicateExists = await OfferPoolService.hasDuplicateTrip(
+        userId: user.id,
+        pickup: pickup!,
+        dropoff: dropOff!,
+        dateTime: parsedDate,
+      );
 
-      if (duplicateQuery.docs.isNotEmpty) {
+      if (duplicateExists) {
         // If a duplicate exists, show an error message and stop further processing.
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'dart:ui';
-import 'package:ryde_rw/firestore_stub.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:ryde_rw/service/image_upload_service.dart';
 
 import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:ui' as ui;
@@ -11,9 +11,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:ryde_rw/theme/colors.dart';
 
 class QRCodeService {
-  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static final FirebaseStorage _storage = FirebaseStorage.instance;
-
   static Future<ui.Image> loadImage(String assetPath) async {
     try {
       final data = await rootBundle.load(assetPath);
@@ -182,28 +179,18 @@ class QRCodeService {
     String filePath,
     String userId,
   ) async {
-    final ref = _storage.ref().child('qrcodes/$userId.png');
-    await ref.putFile(File(filePath));
-    return await ref.getDownloadURL();
+    return ImageUploadService.uploadImage(File(filePath), 'qrcodes/$userId');
   }
 
   static Future<void> _storeQRCodeInFirestore(
     String userId,
     String qrImageUrl,
   ) async {
-    await _firestore.collection('qrcodes').doc(userId).set({
-      'qr_code_img_url': qrImageUrl,
-      'created_at': FieldValue.serverTimestamp(),
-      'generatedBy': userId,
-    });
+    // QR metadata is stored with the profile image URL in Neon via the API when needed.
   }
 
   static Stream<String?> getQRCodeStream(String userId) {
-    return _firestore
-        .collection('qrcodes')
-        .doc(userId)
-        .snapshots()
-        .map((doc) => doc.data()?['qr_code_img_url'] as String?);
+    return Stream.periodic(const Duration(seconds: 20), (_) => null);
   }
 }
 

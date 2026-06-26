@@ -1,50 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
-import 'package:ryde_rw/firestore_stub.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:ryde_rw/models/request_model.dart';
-import 'package:ryde_rw/service/offer_pool_service.dart';
+import 'package:ryde_rw/service/request_rider_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/utils.dart';
 import 'package:ryde_rw/provider/current_location_provider.dart';
 
-final _nearbyPassengersProvider = StreamProvider.family<List<RequestRide>, LatLng>((ref, location) {
-  final user = ref.read(userProvider)!;
-  return FirebaseFirestore.instance
-      .collection('requestRiders')
-      .where('completed', isEqualTo: false)
-      .where('accepted', isEqualTo: false)
-      .where('cancelled', isEqualTo: false)
-      .where('country_code', isEqualTo: user.countryCode)
-      .snapshots()
-      .map((querySnapshot) {
-        final List<RequestRide> passengers = querySnapshot.docs.map((doc) {
-          final data = doc.data();
-          data['id'] = doc.id;
-          return RequestRide.fromMap(data);
-        }).toList();
-
-        final List<RequestRide> nearbyPassengers = passengers.where((passenger) {
-          final double distance = Geolocator.distanceBetween(
-            location.latitude,
-            location.longitude,
-            passenger.pickupLocation.latitude,
-            passenger.pickupLocation.longitude,
-          ) / 1000;
-
-          return distance <= 3 &&
-              !passenger.accepted &&
-              passenger.rider.isEmpty &&
-              !passenger.cancelled &&
-              passenger.requestedBy != user.id;
-        }).toList();
-
-        return nearbyPassengers;
-      });
-});
+final _nearbyPassengersProvider = RequestRideService.diplayPassengerNearYou;
 
 class SearchPassengersListPage extends ConsumerWidget {
   final String? type;
@@ -61,7 +25,7 @@ class SearchPassengersListPage extends ConsumerWidget {
 
     return locationAsync.when(
       data: (location) {
-        final passengerNearYouStream = ref.watch(_nearbyPassengersProvider(location));
+        final passengerNearYouStream = ref.watch(_nearbyPassengersProvider);
         
         return passengerNearYouStream.when(
           data: (requestRides) => _buildContent(context, ref, user, false, requestRides),

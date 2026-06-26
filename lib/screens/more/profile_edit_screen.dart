@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:ryde_rw/models/user.dart';
 import 'package:ryde_rw/service/api_service.dart';
-import 'package:ryde_rw/service/firebase_storage.dart';
+import 'package:ryde_rw/service/image_upload_service.dart';
 import 'package:ryde_rw/service/local_storage_service.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
 import 'package:ryde_rw/theme/colors.dart';
@@ -113,7 +113,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   Future<void> _pickImage(void Function(String url) onUrl) async {
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (picked == null) return;
-    final url = await FirebaseStorageService.uploadImage(File(picked.path), 'profiles');
+    final url = await ImageUploadService.uploadImage(File(picked.path), 'profiles');
     if (!url.startsWith('data:') && !url.startsWith('http')) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Upload failed')));
