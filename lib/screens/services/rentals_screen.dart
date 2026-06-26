@@ -45,16 +45,38 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
     }
   }
 
-  Future<void> _confirmRentalPayment(String intentId, String vehicleLabel) async {
+  Future<void> _confirmRentalPayment(
+    String intentId,
+    String vehicleLabel, {
+    bool clientConfirmed = false,
+  }) async {
     if (!mounted) return;
     final outcome = await showPaymentConfirmDialog(
       context,
       title: 'Rental payment',
       successMessage: 'Booking confirmed for $vehicleLabel. Payment successful!',
-      poll: () => PaymentPollingService.waitForRentalIntentCompleted(intentId),
+      clientConfirmed: clientConfirmed,
+      poll: () => PaymentPollingService.waitForRentalIntentCompleted(
+        intentId,
+        maxMs: clientConfirmed ? 90000 : 20000,
+      ),
     );
     if (!mounted) return;
-    if (outcome == 'COMPLETED' || outcome == 'FAILED') {
+    if (clientConfirmed || outcome == 'COMPLETED' || outcome == 'CLIENT_CONFIRMED') {
+      _pendingRentalIntentId = null;
+      _pendingVehicleLabel = null;
+    } else if (outcome == 'TIMEOUT' && !clientConfirmed) {
+      _pendingRentalIntentId = null;
+      _pendingVehicleLabel = null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Payment submitted. If you completed checkout in the browser, your booking is confirmed.',
+          ),
+        ),
+      );
+      PaymentPollingService.syncRentalIntentInBackground(intentId);
+    } else if (outcome == 'FAILED') {
       _pendingRentalIntentId = null;
       _pendingVehicleLabel = null;
     }
@@ -113,7 +135,7 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
       if (!mounted) return;
 
       if (payResult?.ok == true && intentId != null && intentId.isNotEmpty) {
-        await _confirmRentalPayment(intentId, vehicleLabel);
+        await _confirmRentalPayment(intentId, vehicleLabel, clientConfirmed: true);
       } else if (payResult?.ok == false) {
         _pendingRentalIntentId = null;
         _pendingVehicleLabel = null;

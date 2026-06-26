@@ -39,12 +39,22 @@ class PaymentPollingService {
   static String messageForOutcome(String outcome, {String? successMessage}) {
     switch (outcome) {
       case 'COMPLETED':
+      case 'CLIENT_CONFIRMED':
         return successMessage ?? 'Payment successful! Your order is confirmed.';
       case 'FAILED':
         return 'Payment failed or was cancelled.';
       default:
-        return 'Payment is still processing. Please check again shortly.';
+        return 'Payment submitted. If you completed checkout, confirmation may take a moment to sync.';
     }
+  }
+
+  /// Fire-and-forget webhook sync after IremboPay client callback.
+  static void syncTripPaymentInBackground(String tripId) {
+    waitForTripPaymentCompleted(tripId);
+  }
+
+  static void syncRentalIntentInBackground(String intentId) {
+    waitForRentalIntentCompleted(intentId);
   }
 
   static String _status(Map<String, dynamic> row) =>

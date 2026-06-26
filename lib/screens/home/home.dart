@@ -157,21 +157,36 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _confirmTripPayment(String tripId) async {
+  Future<void> _confirmTripPayment(String tripId, {bool clientConfirmed = false}) async {
     if (!mounted) return;
     final outcome = await showPaymentConfirmDialog(
       context,
       title: 'Trip payment',
       successMessage: 'Payment successful! Your trip is paid.',
-      poll: () => PaymentPollingService.waitForTripPaymentCompleted(tripId),
+      clientConfirmed: clientConfirmed,
+      poll: () => PaymentPollingService.waitForTripPaymentCompleted(
+        tripId,
+        maxMs: clientConfirmed ? 90000 : 20000,
+      ),
     );
     if (!mounted) return;
-    if (outcome == 'COMPLETED' || outcome == 'FAILED') {
+    if (clientConfirmed || outcome == 'COMPLETED' || outcome == 'CLIENT_CONFIRMED') {
       _pendingPaymentTripId = null;
-      if (outcome == 'COMPLETED') {
-        _destinationController.clear();
-        await _loadActiveTripTracking();
-      }
+      _destinationController.clear();
+      await _loadActiveTripTracking();
+    } else if (outcome == 'TIMEOUT' && !clientConfirmed) {
+      _pendingPaymentTripId = null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Payment submitted. If you completed checkout in the browser, your trip is paid.',
+          ),
+        ),
+      );
+      PaymentPollingService.syncTripPaymentInBackground(tripId);
+      await _loadActiveTripTracking();
+    } else if (outcome == 'FAILED') {
+      _pendingPaymentTripId = null;
     }
   }
 
@@ -341,7 +356,7 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
       if (!mounted) return;
 
       if (payResult?.ok == true) {
-        await _confirmTripPayment(tripId);
+        await _confirmTripPayment(tripId, clientConfirmed: true);
       } else if (payResult?.ok == false) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Payment was cancelled or failed. You can try again.')),
