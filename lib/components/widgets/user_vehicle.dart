@@ -13,7 +13,7 @@ class DriverVehicle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vehicleDetails = ref.watch(
-      VehicleService.vehicleDetailsStreamProvider(pool.user),
+      VehicleService.vehicleStream(pool.user),
     );
     final isLoading = vehicleDetails.isLoading;
 

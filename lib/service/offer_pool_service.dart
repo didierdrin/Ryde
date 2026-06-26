@@ -75,14 +75,14 @@ class OfferPoolService {
     }
   }
 
-  static Stream<List<PassengerOfferPool>> _pollOfferPools(
-    Future<List<PassengerOfferPool>> Function() fetch,
+  static Stream<List<T>> _pollOfferPools<T>(
+    Future<List<T>> Function() fetch,
   ) async* {
     while (true) {
       try {
         yield await fetch();
       } catch (_) {
-        yield [];
+        yield <T>[];
       }
       await Future.delayed(_pollInterval);
     }

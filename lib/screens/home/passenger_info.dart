@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:ryde_rw/firestore_stub.dart';
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -438,13 +437,8 @@ class PassengerInfoConsumerState extends ConsumerState<PassengerInfo> {
   Widget build(BuildContext context) {
     final user = ref.watch(userProvider)!;
 
-    final activeVehiclesStream = ref.watch(
-      VehicleService.approvedVehicleStream,
-    );
-    final vehicles = activeVehiclesStream.value ?? [];
-    final vehicle = vehicles.firstWhereOrNull((v) {
-      return v.userId == user.phoneNumber;
-    });
+    final vehicleAsync = ref.watch(VehicleService.vehicleStream(user.id));
+    final vehicle = vehicleAsync.value;
 
     return Scaffold(
       extendBodyBehindAppBar: true,

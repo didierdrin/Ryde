@@ -246,11 +246,7 @@ class DisplayAvailableDriverGoogleMapState
     });
 
     try {
-      // Generate a new document reference to get the ID
-      final requestDoc = RequestRideService.collection.doc();
-
       final requestRide = RequestRide(
-        id: requestDoc.id, // Set the ID from the generated document reference
         rider: widget.ride.user,
         requestedBy: user.id,
         pickupLocation: widget.ride.pickupLocation,

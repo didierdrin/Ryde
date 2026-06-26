@@ -24,14 +24,12 @@ class _DriversState extends ConsumerState<DriversPool> {
     final driverAroundStream = ref.watch(
       OfferPoolService.allofferPoolStreamProvider,
     );
-    final vehicleStream = ref.watch(VehicleService.allVehicleStreamProvider);
     final userLocation = ref.read(locationProvider);
     // final region = ref.read(regionProvider);
 
-    final isLoading = driverAroundStream.isLoading || vehicleStream.isLoading;
+    final isLoading = driverAroundStream.isLoading;
 
     final offerPool = driverAroundStream.value ?? [];
-    final vehicles = vehicleStream.value ?? [];
 
     final driverLocationNear = offerPool.where((location) {
       final checkRequestDate = location.dateTime;
@@ -89,30 +87,34 @@ class _DriversState extends ConsumerState<DriversPool> {
                   itemCount: driverLocationNear.length,
                   itemBuilder: (context, index) {
                     final ride = driverLocationNear[index];
-
-                    final vehicle = vehicles.firstWhere(
-                      (element) => element.userId == ride.user,
-                      orElse: () => Vehicle(
-                        userId: ride.user,
-                        vehicleRegNumber: 'N/A',
-                        vehicleMake: 'N/A',
-                        createdOn: DateTime.now(),
-                      ),
-                    );
-                    final distance = LocationService.getDistanceOffer(
-                      ride,
-                      userLocation,
-                    )?.toStringAsFixed(1);
-                    return DriverAvailableCard(
-                      image: 'assets/car.png',
-                      name: vehicle.vehicleRegNumber,
-                      ride: ride,
-                      price:
-                          '${"RWF"} ${formatPriceWithCommas(ride.pricePerSeat)}',
-                      time: '${distance ?? ''} km',
-                      capacity: ride.emptySeat == null
-                          ? ride.selectedSeat!
-                          : ride.emptySeat!,
+                    return Consumer(
+                      builder: (context, ref, _) {
+                        final vehicleAsync = ref.watch(
+                          VehicleService.vehicleStream(ride.user),
+                        );
+                        final vehicle = vehicleAsync.value ??
+                            Vehicle(
+                              userId: ride.user,
+                              vehicleRegNumber: 'N/A',
+                              vehicleMake: 'N/A',
+                              createdOn: DateTime.now(),
+                            );
+                        final distance = LocationService.getDistanceOffer(
+                          ride,
+                          userLocation,
+                        )?.toStringAsFixed(1);
+                        return DriverAvailableCard(
+                          image: 'assets/car.png',
+                          name: vehicle.vehicleRegNumber,
+                          ride: ride,
+                          price:
+                              '${"RWF"} ${formatPriceWithCommas(ride.pricePerSeat)}',
+                          time: '${distance ?? ''} km',
+                          capacity: ride.emptySeat == null
+                              ? ride.selectedSeat!
+                              : ride.emptySeat!,
+                        );
+                      },
                     );
                   },
                 ),
