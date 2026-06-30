@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ryde_rw/service/api_service.dart';
+import 'package:ryde_rw/screens/services/services_history_action.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/utils.dart';
 
@@ -140,6 +141,7 @@ class _AuctionsScreenState extends State<AuctionsScreen> {
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          ...servicesHistoryActions(context),
           IconButton(icon: const Icon(Icons.add), onPressed: _showCreateDialog),
         ],
       ),

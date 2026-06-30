@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:ryde_rw/service/api_service.dart';
+import 'package:ryde_rw/screens/services/services_history_action.dart';
 import 'package:ryde_rw/theme/colors.dart';
 
 class AvailableDriversScreen extends StatefulWidget {
@@ -54,6 +55,7 @@ class _AvailableDriversScreenState extends State<AvailableDriversScreen> {
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         actions: [
+          ...servicesHistoryActions(context),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
         ],
       ),

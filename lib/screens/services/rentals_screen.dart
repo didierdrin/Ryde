@@ -2,8 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:ryde_rw/service/payment_checkout_service.dart';
 import 'package:ryde_rw/service/payment_polling_service.dart';
-import 'package:ryde_rw/widgets/payment_confirm_dialog.dart';
+import 'package:ryde_rw/widgets/order_placed_feedback.dart';
 import 'package:ryde_rw/service/api_service.dart';
+import 'package:ryde_rw/screens/services/services_history_action.dart';
 import 'package:ryde_rw/theme/colors.dart';
 import 'package:ryde_rw/utils/utils.dart';
 
@@ -45,40 +46,51 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
     }
   }
 
-  Future<void> _confirmRentalPayment(
+  Future<void> _finalizeRentalPayment(
     String intentId,
     String vehicleLabel, {
     bool clientConfirmed = false,
   }) async {
     if (!mounted) return;
-    final outcome = await showPaymentConfirmDialog(
-      context,
-      title: 'Rental payment',
-      successMessage: 'Booking confirmed for $vehicleLabel. Payment successful!',
-      clientConfirmed: clientConfirmed,
-      poll: () => PaymentPollingService.waitForRentalIntentCompleted(
-        intentId,
-        maxMs: clientConfirmed ? 90000 : 20000,
-      ),
+    if (clientConfirmed) {
+      try {
+        await ApiService.acknowledgeRentalPayment(intentId);
+      } catch (_) {
+        PaymentPollingService.syncRentalIntentInBackground(intentId);
+      }
+      if (!mounted) return;
+      _pendingRentalIntentId = null;
+      _pendingVehicleLabel = null;
+      showOrderPlacedFeedback(
+        context,
+        message: 'Order placed! $vehicleLabel is booked.',
+      );
+      await _load();
+      return;
+    }
+
+    final outcome = await PaymentPollingService.waitForRentalIntentCompleted(
+      intentId,
+      maxMs: 20000,
     );
     if (!mounted) return;
-    if (clientConfirmed || outcome == 'COMPLETED' || outcome == 'CLIENT_CONFIRMED') {
+    if (outcome == 'COMPLETED') {
       _pendingRentalIntentId = null;
       _pendingVehicleLabel = null;
-    } else if (outcome == 'TIMEOUT' && !clientConfirmed) {
+      showOrderPlacedFeedback(context, message: 'Order placed! $vehicleLabel is booked.');
+      await _load();
+    } else if (outcome == 'TIMEOUT') {
       _pendingRentalIntentId = null;
       _pendingVehicleLabel = null;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Payment submitted. If you completed checkout in the browser, your booking is confirmed.',
-          ),
-        ),
-      );
+      showOrderPlacedFeedback(context);
       PaymentPollingService.syncRentalIntentInBackground(intentId);
+      await _load();
     } else if (outcome == 'FAILED') {
       _pendingRentalIntentId = null;
       _pendingVehicleLabel = null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment was cancelled or failed.')),
+      );
     }
   }
 
@@ -89,7 +101,7 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
     if (_checkingPendingPayment) return;
     setState(() => _checkingPendingPayment = true);
     try {
-      await _confirmRentalPayment(intentId, label);
+      await _finalizeRentalPayment(intentId, label);
     } catch (_) {
     } finally {
       if (mounted) setState(() => _checkingPendingPayment = false);
@@ -127,6 +139,7 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
         _pendingVehicleLabel = vehicleLabel;
       }
 
+      if (!mounted) return;
       final payResult = await PaymentCheckoutService.openCheckoutForInvoice(
         context,
         invoiceRes,
@@ -135,7 +148,7 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
       if (!mounted) return;
 
       if (payResult?.ok == true && intentId != null && intentId.isNotEmpty) {
-        await _confirmRentalPayment(intentId, vehicleLabel, clientConfirmed: true);
+        await _finalizeRentalPayment(intentId, vehicleLabel, clientConfirmed: true);
       } else if (payResult?.ok == false) {
         _pendingRentalIntentId = null;
         _pendingVehicleLabel = null;
@@ -159,6 +172,8 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
     }
   }
 
+  bool _isAvailable(Map<String, dynamic> vehicle) => vehicle['isAvailable'] != false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -167,6 +182,7 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
         title: const Text('Rentals'),
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
+        actions: servicesHistoryActions(context),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -180,6 +196,7 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
                     final imageUrl = (v['imageUrl'] ?? _defaultCarImage).toString();
                     final dailyRate = (v['dailyRate'] as num?)?.toDouble() ?? 0;
                     final id = v['id']?.toString() ?? '$index';
+                    final available = _isAvailable(v);
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -188,18 +205,38 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(
-                            height: 180,
-                            width: double.infinity,
-                            child: CachedNetworkImage(
-                              imageUrl: imageUrl,
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(color: kLightGreyColor),
-                              errorWidget: (_, __, ___) => CachedNetworkImage(
-                                imageUrl: _defaultCarImage,
-                                fit: BoxFit.cover,
+                          Stack(
+                            children: [
+                              SizedBox(
+                                height: 180,
+                                width: double.infinity,
+                                child: CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  fit: BoxFit.cover,
+                                  placeholder: (_, __) => Container(color: kLightGreyColor),
+                                  errorWidget: (_, __, ___) => CachedNetworkImage(
+                                    imageUrl: _defaultCarImage,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (!available)
+                                Positioned(
+                                  top: 12,
+                                  left: 12,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.shade700,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      'Rented',
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           Padding(
                             padding: const EdgeInsets.all(16),
@@ -228,7 +265,7 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton(
-                                    onPressed: _payingId == id ? null : () => _book(v),
+                                    onPressed: !available || _payingId == id ? null : () => _book(v),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: primaryColor,
                                       foregroundColor: Colors.white,
@@ -240,7 +277,7 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
                                             width: 20,
                                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                           )
-                                        : const Text('Book & Pay'),
+                                        : Text(available ? 'Rent' : 'Currently rented'),
                                   ),
                                 ),
                               ],

@@ -8,7 +8,7 @@ import 'package:ryde_rw/provider/current_location_provider.dart';
 import 'package:ryde_rw/config/api_config.dart';
 import 'package:ryde_rw/service/payment_checkout_service.dart';
 import 'package:ryde_rw/service/payment_polling_service.dart';
-import 'package:ryde_rw/widgets/payment_confirm_dialog.dart';
+import 'package:ryde_rw/widgets/order_placed_feedback.dart';
 import 'package:ryde_rw/service/api_service.dart';
 import 'package:ryde_rw/service/realtime_location_tracker.dart';
 import 'package:ryde_rw/shared/shared_states.dart';
@@ -159,34 +159,35 @@ class _HomeState extends ConsumerState<Home> with WidgetsBindingObserver {
 
   Future<void> _confirmTripPayment(String tripId, {bool clientConfirmed = false}) async {
     if (!mounted) return;
-    final outcome = await showPaymentConfirmDialog(
-      context,
-      title: 'Trip payment',
-      successMessage: 'Payment successful! Your trip is paid.',
-      clientConfirmed: clientConfirmed,
-      poll: () => PaymentPollingService.waitForTripPaymentCompleted(
-        tripId,
-        maxMs: clientConfirmed ? 90000 : 20000,
-      ),
-    );
-    if (!mounted) return;
-    if (clientConfirmed || outcome == 'COMPLETED' || outcome == 'CLIENT_CONFIRMED') {
+    if (clientConfirmed) {
       _pendingPaymentTripId = null;
       _destinationController.clear();
+      showOrderPlacedFeedback(context, message: 'Order placed! Your trip is booked.');
+      PaymentPollingService.syncTripPaymentInBackground(tripId);
       await _loadActiveTripTracking();
-    } else if (outcome == 'TIMEOUT' && !clientConfirmed) {
+      return;
+    }
+
+    final outcome = await PaymentPollingService.waitForTripPaymentCompleted(
+      tripId,
+      maxMs: 20000,
+    );
+    if (!mounted) return;
+    if (outcome == 'COMPLETED') {
       _pendingPaymentTripId = null;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Payment submitted. If you completed checkout in the browser, your trip is paid.',
-          ),
-        ),
-      );
+      _destinationController.clear();
+      showOrderPlacedFeedback(context, message: 'Order placed! Your trip is booked.');
+      await _loadActiveTripTracking();
+    } else if (outcome == 'TIMEOUT') {
+      _pendingPaymentTripId = null;
+      showOrderPlacedFeedback(context);
       PaymentPollingService.syncTripPaymentInBackground(tripId);
       await _loadActiveTripTracking();
     } else if (outcome == 'FAILED') {
       _pendingPaymentTripId = null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment was cancelled or failed.')),
+      );
     }
   }
 

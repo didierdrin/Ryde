@@ -410,6 +410,22 @@ class ApiService {
     return await _handleResponse(response);
   }
 
+  static Future<Map<String, dynamic>> getRentalHistory() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/payments/rental-history'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
+  static Future<Map<String, dynamic>> acknowledgeRentalPayment(String intentId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/payments/rental-intent/${Uri.encodeComponent(intentId)}/acknowledge'),
+      headers: await _getHeaders(),
+    );
+    return await _handleResponse(response);
+  }
+
   // Auctions
   static Future<Map<String, dynamic>> getAuctionListings({String? type}) async {
     final url = type != null

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ryde_rw/screens/services/auctions_screen.dart';
 import 'package:ryde_rw/screens/services/available_drivers_screen.dart';
 import 'package:ryde_rw/screens/services/rentals_screen.dart';
+import 'package:ryde_rw/screens/services/services_history_action.dart';
 import 'package:ryde_rw/theme/colors.dart';
 
 class ServicesHubScreen extends StatelessWidget {
@@ -38,6 +39,7 @@ class ServicesHubScreen extends StatelessWidget {
         foregroundColor: Colors.black,
         elevation: 0,
         centerTitle: false,
+        actions: servicesHistoryActions(context, foregroundColor: Colors.black),
       ),
       body: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
