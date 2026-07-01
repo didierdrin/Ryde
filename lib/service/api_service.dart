@@ -385,18 +385,24 @@ class ApiService {
     return await _handleResponse(response);
   }
 
-  static Future<Map<String, dynamic>> createInvoiceForAmount(
-    double amount, {
+  static Future<Map<String, dynamic>> createInvoiceForAmount({
+    double? amount,
     String? address,
     String? vehicleRef,
+    String? rentalStartDate,
+    String? rentalEndDate,
+    bool withDriver = false,
   }) async {
     final response = await http.post(
       Uri.parse('$baseUrl/payments/create-invoice-for-amount'),
       headers: await _getHeaders(),
       body: json.encode({
-        'amount': amount,
+        if (amount != null) 'amount': amount,
         if (address != null) 'address': address,
         if (vehicleRef != null) 'vehicleRef': vehicleRef,
+        if (rentalStartDate != null) 'rentalStartDate': rentalStartDate,
+        if (rentalEndDate != null) 'rentalEndDate': rentalEndDate,
+        'withDriver': withDriver,
       }),
     );
     return await _handleResponse(response);
@@ -424,6 +430,16 @@ class ApiService {
       headers: await _getHeaders(),
     );
     return await _handleResponse(response);
+  }
+
+  static Future<void> cancelRentalPayment(String intentId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/payments/rental-intent/${Uri.encodeComponent(intentId)}/cancel'),
+        headers: await _getHeaders(),
+      );
+      await _handleResponse(response);
+    } catch (_) {}
   }
 
   // Auctions

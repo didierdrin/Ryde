@@ -174,10 +174,17 @@ class _ServicesHistoryScreenState extends State<ServicesHistoryScreen> {
                                       style: const TextStyle(fontWeight: FontWeight.w600),
                                     ),
                                     const SizedBox(height: 4),
-                                    Text(
-                                      _formatDate(item['createdAt']),
-                                      style: TextStyle(color: kSimpleText, fontSize: 12),
-                                    ),
+                                    if (item['rentalStartDate'] != null && item['rentalEndDate'] != null)
+                                      Text(
+                                        '${_formatDate(item['rentalStartDate'])} → ${_formatDate(item['rentalEndDate'])}'
+                                        '${item['rentalDays'] != null ? ' (${item['rentalDays']} days)' : ''}',
+                                        style: TextStyle(color: kSimpleText, fontSize: 12),
+                                      )
+                                    else
+                                      Text(
+                                        _formatDate(item['createdAt']),
+                                        style: TextStyle(color: kSimpleText, fontSize: 12),
+                                      ),
                                   ],
                                 ),
                               ),

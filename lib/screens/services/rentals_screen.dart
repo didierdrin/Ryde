@@ -46,6 +46,20 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
     }
   }
 
+  String _formatDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  int _rentalDays(DateTime start, DateTime end) {
+    final diff = end.difference(start).inDays;
+    return diff + 1;
+  }
+
+  bool _isAvailable(Map<String, dynamic> vehicle) => vehicle['isAvailable'] == true;
+
   Future<void> _finalizeRentalPayment(
     String intentId,
     String vehicleLabel, {
@@ -124,14 +138,135 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
     }
   }
 
-  Future<void> _book(Map<String, dynamic> vehicle) async {
-    final id = vehicle['id']?.toString() ?? '';
-    final dailyRate = (vehicle['dailyRate'] as num?)?.toDouble() ?? 0;
+  Future<void> _showRentDialog(Map<String, dynamic> vehicle) async {
+    final dailyRate = (vehicle['dailyRateWithoutDriver'] as num?)?.toDouble() ??
+        (vehicle['dailyRate'] as num?)?.toDouble() ??
+        0;
+    final dailyRateWithDriver = (vehicle['dailyRateWithDriver'] as num?)?.toDouble() ?? dailyRate;
     if (dailyRate <= 0) return;
+
+    final now = DateTime.now();
+    DateTime startDate = DateTime(now.year, now.month, now.day);
+    DateTime endDate = startDate.add(const Duration(days: 1));
+    bool withDriver = false;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final days = _rentalDays(startDate, endDate);
+          final rate = withDriver ? dailyRateWithDriver : dailyRate;
+          final total = rate * days;
+
+          Future<void> pickDate({required bool isStart}) async {
+            final initial = isStart ? startDate : endDate;
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: initial,
+              firstDate: isStart ? startDate : startDate,
+              lastDate: DateTime(now.year + 2),
+            );
+            if (picked == null) return;
+            setDialogState(() {
+              if (isStart) {
+                startDate = DateTime(picked.year, picked.month, picked.day);
+                if (endDate.isBefore(startDate)) {
+                  endDate = startDate;
+                }
+              } else {
+                endDate = DateTime(picked.year, picked.month, picked.day);
+              }
+            });
+          }
+
+          return AlertDialog(
+            title: Text('Rent ${vehicle['make']} ${vehicle['model']}'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Rental period', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('From'),
+                    subtitle: Text(_formatDate(startDate)),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: () => pickDate(isStart: true),
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('To'),
+                    subtitle: Text(_formatDate(endDate)),
+                    trailing: const Icon(Icons.calendar_today),
+                    onTap: () => pickDate(isStart: false),
+                  ),
+                  Text('$days day${days == 1 ? '' : 's'}', style: TextStyle(color: kSimpleText, fontSize: 13)),
+                  const SizedBox(height: 12),
+                  const Text('Option', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('No driver'),
+                          selected: !withDriver,
+                          onSelected: (_) => setDialogState(() => withDriver = false),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ChoiceChip(
+                          label: const Text('With driver'),
+                          selected: withDriver,
+                          onSelected: (_) => setDialogState(() => withDriver = true),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Total: RWF ${formatPriceWithCommas(total.round())}',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Continue to pay')),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await _book(
+      vehicle,
+      rentalStartDate: _formatDate(startDate),
+      rentalEndDate: _formatDate(endDate),
+      withDriver: withDriver,
+    );
+  }
+
+  Future<void> _book(
+    Map<String, dynamic> vehicle, {
+    required String rentalStartDate,
+    required String rentalEndDate,
+    bool withDriver = false,
+  }) async {
+    final id = vehicle['id']?.toString() ?? '';
 
     setState(() => _payingId = id);
     try {
-      final invoiceRes = await ApiService.createInvoiceForAmount(dailyRate, vehicleRef: id);
+      final invoiceRes = await ApiService.createInvoiceForAmount(
+        vehicleRef: id,
+        rentalStartDate: rentalStartDate,
+        rentalEndDate: rentalEndDate,
+        withDriver: withDriver,
+      );
       final intentId = (invoiceRes['intentId'] ?? invoiceRes['intent_id'])?.toString();
       final vehicleLabel = '${vehicle['make']} ${vehicle['model']}';
       if (intentId != null && intentId.isNotEmpty) {
@@ -150,6 +285,9 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
       if (payResult?.ok == true && intentId != null && intentId.isNotEmpty) {
         await _finalizeRentalPayment(intentId, vehicleLabel, clientConfirmed: true);
       } else if (payResult?.ok == false) {
+        if (intentId != null && intentId.isNotEmpty) {
+          await ApiService.cancelRentalPayment(intentId);
+        }
         _pendingRentalIntentId = null;
         _pendingVehicleLabel = null;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -172,8 +310,6 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
     }
   }
 
-  bool _isAvailable(Map<String, dynamic> vehicle) => vehicle['isAvailable'] != false;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -194,9 +330,12 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
                   itemBuilder: (context, index) {
                     final v = _vehicles[index] as Map<String, dynamic>;
                     final imageUrl = (v['imageUrl'] ?? _defaultCarImage).toString();
-                    final dailyRate = (v['dailyRate'] as num?)?.toDouble() ?? 0;
+                    final dailyRate = (v['dailyRateWithoutDriver'] as num?)?.toDouble() ??
+                        (v['dailyRate'] as num?)?.toDouble() ??
+                        0;
                     final id = v['id']?.toString() ?? '$index';
                     final available = _isAvailable(v);
+                    final rentedUntil = v['rentedUntil']?.toString();
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 16),
@@ -220,22 +359,25 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
                                   ),
                                 ),
                               ),
-                              if (!available)
-                                Positioned(
-                                  top: 12,
-                                  left: 12,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: Colors.amber.shade700,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: const Text(
-                                      'Rented',
-                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                              Positioned(
+                                top: 12,
+                                left: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: available ? Colors.green.shade700 : Colors.amber.shade700,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    available ? 'Available' : 'Rented',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
                                     ),
                                   ),
                                 ),
+                              ),
                             ],
                           ),
                           Padding(
@@ -252,6 +394,14 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
                                   '${v['year']} • ${v['color']} • ${v['type']}',
                                   style: TextStyle(color: kSimpleText, fontSize: 13),
                                 ),
+                                if (!available && rentedUntil != null && rentedUntil.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 6),
+                                    child: Text(
+                                      'Rented until $rentedUntil',
+                                      style: TextStyle(color: Colors.amber.shade800, fontSize: 12, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
                                 if (v['description'] != null) ...[
                                   const SizedBox(height: 8),
                                   Text(v['description'].toString(), style: TextStyle(color: kSimpleText, fontSize: 13)),
@@ -265,7 +415,7 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton(
-                                    onPressed: !available || _payingId == id ? null : () => _book(v),
+                                    onPressed: !available || _payingId == id ? null : () => _showRentDialog(v),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: primaryColor,
                                       foregroundColor: Colors.white,
