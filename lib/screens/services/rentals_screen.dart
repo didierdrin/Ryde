@@ -42,8 +42,26 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _load();
       _checkPendingRentalPaymentIfNeeded();
     }
+  }
+
+  bool _isAvailable(Map<String, dynamic> vehicle) {
+    if (vehicle['isAvailable'] == false || vehicle['is_available'] == false) {
+      return false;
+    }
+    final untilRaw = vehicle['rentedUntil'] ?? vehicle['rented_until'];
+    if (untilRaw != null) {
+      final parsed = DateTime.tryParse(untilRaw.toString().substring(0, 10));
+      if (parsed != null) {
+        final today = DateTime.now();
+        final end = DateTime(parsed.year, parsed.month, parsed.day);
+        final now = DateTime(today.year, today.month, today.day);
+        if (!end.isBefore(now)) return false;
+      }
+    }
+    return vehicle['isAvailable'] == true || vehicle['is_available'] == true;
   }
 
   String _formatDate(DateTime date) {
@@ -58,7 +76,23 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
     return diff + 1;
   }
 
-  bool _isAvailable(Map<String, dynamic> vehicle) => vehicle['isAvailable'] == true;
+  Widget _statusBadge(bool available) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: available ? Colors.green.shade700 : Colors.amber.shade700,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        available ? 'Available' : 'Rented',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
 
   Future<void> _finalizeRentalPayment(
     String intentId,
@@ -323,8 +357,10 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _vehicles.isEmpty
-              ? const Center(child: Text('No rental vehicles available.'))
-              : ListView.builder(
+              ? const Center(child: Text('No rental vehicles listed yet.'))
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _vehicles.length,
                   itemBuilder: (context, index) {
@@ -362,21 +398,7 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
                               Positioned(
                                 top: 12,
                                 left: 12,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: available ? Colors.green.shade700 : Colors.amber.shade700,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    available ? 'Available' : 'Rented',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
+                                child: _statusBadge(available),
                               ),
                             ],
                           ),
@@ -389,6 +411,8 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
                                   '${v['make']} ${v['model']}',
                                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                 ),
+                                const SizedBox(height: 6),
+                                _statusBadge(available),
                                 const SizedBox(height: 4),
                                 Text(
                                   '${v['year']} • ${v['color']} • ${v['type']}',
@@ -437,6 +461,7 @@ class _RentalsScreenState extends State<RentalsScreen> with WidgetsBindingObserv
                       ),
                     );
                   },
+                ),
                 ),
     );
   }
